@@ -125,7 +125,6 @@ export default function OrdersPage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h1 className="text-3xl font-semibold">내 주문 내역</h1>
-              <p className="text-white/80">이 기기에서 로그인한 주문을 확인할 수 있어요.</p>
             </div>
             <Link className="rounded-full border border-white/70 px-4 py-2 text-sm text-white" href="/">
               홈으로
