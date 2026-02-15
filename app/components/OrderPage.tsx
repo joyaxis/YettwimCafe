@@ -441,7 +441,7 @@ export default function OrderPage() {
               todayOrders.map((order) => (
                 <div key={order.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-clay px-4 py-3">
                   <div className="flex flex-wrap items-center gap-3">
-                    <span className="font-semibold">주문번호 {order.order_code || order.id}</span>
+                    <span className="font-semibold">{order.order_code || order.id}</span>
                     <StatusBadge status={order.status} />
                   </div>
                   <span className="font-semibold">{Number(order.total).toLocaleString("ko-KR")}</span>
