@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import PwaClient from "./PwaClient";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 import type { MenuItem } from "../../lib/types";
@@ -366,6 +367,7 @@ export default function OrderPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10">
+      <PwaClient />
       <div className="flex justify-end -mt-6 text-xs text-stone-500">
         {customerName && (
           <span>
