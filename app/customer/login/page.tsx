@@ -68,7 +68,7 @@ export default function CustomerLoginPage() {
           <label className="flex items-center gap-3 text-sm text-stone-500">
             <span className="min-w-[32px]">이름</span>
             <input
-              className="flex-1 border-b border-stone-300 bg-transparent px-2 py-2 focus:border-stone-500 focus:outline-none"
+              className="flex-1 border-b border-stone-300 bg-transparent px-2 py-2 text-base focus:border-stone-500 focus:outline-none"
               placeholder="예: 홍길동"
               value={name}
               onChange={(e) => setName(e.target.value)}
