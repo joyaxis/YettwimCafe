@@ -490,10 +490,10 @@ export default function OrderPage() {
                   {items.map((item) => (
                     <article
                       key={item.id}
-                      className="rounded-2xl border border-stone-200 bg-white p-4"
+                      className="flex h-full flex-col rounded-2xl border border-stone-200 bg-white p-4"
                     >
                       <h4 className="mt-4 text-lg font-semibold">{item.name}</h4>
-                      <p className="text-sm text-stone-500 min-h-[3.5rem]">{item.description}</p>
+                      <p className="min-h-[3.5rem] flex-1 text-sm text-stone-500">{item.description}</p>
                       <div className="mt-4 space-y-3">
                         <span className="block text-right text-lg font-semibold">
                           {Number(item.price).toLocaleString("ko-KR")}
