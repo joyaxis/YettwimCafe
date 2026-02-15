@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cafe Order</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <div class="hero-text">
+          <p class="eyebrow">Joy's Cafe</p>
+          <h1>카페 메뉴 주문</h1>
+          <p class="sub">원하는 메뉴를 선택하고 간편하게 주문하세요.</p>
+          <div class="hero-actions">
+            <button class="primary" data-scroll="#menu">메뉴 보기</button>
+            <button class="ghost" data-scroll="#order">주문 요약</button>
+            <button class="ghost" id="adminLoginTrigger">관리자 로그인</button>
+          </div>
+        </div>
+        <div class="hero-card">
+          <p class="card-title">오늘의 추천</p>
+          <div class="card-body">
+            <div>
+              <p class="card-name">흑임자라떼</p>
+              <p class="card-desc">고소한 흑임자와 부드러운 우유</p>
+            </div>
+            <div class="card-price">5,800</div>
+          </div>
+          <p class="card-note">수량 한정</p>
+        </div>
+      </header>
+
+      <section id="menu" class="menu-section">
+        <div class="section-title">
+          <h2>메뉴</h2>
+          <p>아래 메뉴에서 수량을 선택해 주세요.</p>
+        </div>
+
+        <div class="tabs" role="tablist" id="categoryTabs"></div>
+
+        <div class="menu-grid" id="menuGrid"></div>
+      </section>
+
+      <section id="order" class="order-section">
+        <div class="section-title">
+          <h2>주문 요약</h2>
+          <p>선택한 메뉴를 확인하고 주문하세요.</p>
+        </div>
+
+        <div class="order-layout">
+          <div class="order-panel">
+            <div class="order-header">
+              <h3>담은 메뉴</h3>
+              <button class="link" id="clearCart">비우기</button>
+            </div>
+            <div class="order-list" id="orderList"></div>
+          </div>
+
+          <div class="summary-panel">
+            <h3>결제 정보</h3>
+            <div class="summary-row">
+              <span>소계</span>
+              <span id="subtotal">0</span>
+            </div>
+            <div class="summary-row">
+              <span>할인</span>
+              <span id="discount">0</span>
+            </div>
+            <div class="summary-row total">
+              <span>총 결제 금액</span>
+              <span id="total">0</span>
+            </div>
+
+            <div class="summary-inputs">
+              <label>
+                픽업 시간
+                <input type="time" id="pickupTime" value="12:30" />
+              </label>
+              <label>
+                요청 사항
+                <input type="text" id="note" placeholder="예: 얼음 적게" />
+              </label>
+            </div>
+
+            <button class="primary full" id="placeOrder">주문 완료</button>
+            <p class="summary-note" id="orderStatus"></p>
+            <div class="notify-panel">
+              <p class="notify-title">알림</p>
+              <div class="notify-filters" id="notifyFilters">
+                <button class="tab active" data-notify-filter="all">전체</button>
+                <button class="tab" data-notify-filter="order">주문 상태</button>
+                <button class="tab" data-notify-filter="item">메뉴 상태</button>
+              </div>
+              <div class="notify-list" id="notifyList"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="order-history">
+          <div class="section-title">
+            <h2>내 주문 내역</h2>
+            <p>주문 번호와 상태를 확인하세요.</p>
+          </div>
+          <div class="history-list" id="orderHistory"></div>
+        </div>
+      </section>
+
+      <section id="admin" class="admin-section">
+        <div class="section-title">
+          <h2>관리자 패널</h2>
+          <p>메뉴 정보와 주문 상태를 관리하세요.</p>
+        </div>
+
+        <div class="admin-login" id="adminLogin">
+          <h3>관리자 로그인</h3>
+          <p class="menu-desc">관리자만 접근할 수 있습니다.</p>
+          <div class="admin-login-form">
+            <input class="admin-input" id="adminPassword" type="password" placeholder="관리자 비밀번호" />
+            <button class="primary" id="adminLoginBtn">로그인</button>
+          </div>
+          <p class="summary-note" id="adminLoginStatus"></p>
+        </div>
+
+        <div class="admin-grid" id="adminPanel">
+          <div class="admin-card">
+            <h3>메뉴 편집</h3>
+            <div class="admin-list" id="menuEditor"></div>
+          </div>
+
+          <div class="admin-card">
+            <div class="admin-header">
+              <h3>주문 관리</h3>
+              <button class="ghost" id="exportCsv">CSV 내보내기</button>
+            </div>
+            <div class="admin-list" id="adminOrders"></div>
+          </div>
+
+          <div class="admin-card">
+            <div class="admin-header">
+              <h3>레시피 관리</h3>
+              <label class="admin-inline">
+                <input type="checkbox" id="recipeDefaultOpen" />
+                레시피 기본 펼침
+              </label>
+            </div>
+            <div class="admin-list" id="recipeEditor"></div>
+          </div>
+
+          <div class="admin-card">
+            <h3>재고 관리</h3>
+            <div class="inventory-form">
+              <input class="admin-input" id="inventoryCategory" placeholder="카테고리" />
+              <input class="admin-input" id="inventoryName" placeholder="물품명" />
+              <input class="admin-input" id="inventoryQty" type="number" min="0" placeholder="수량" />
+              <input class="admin-input" id="inventoryPrice" type="number" min="0" placeholder="가격" />
+              <button class="ghost" id="addInventory">추가</button>
+            </div>
+            <div class="admin-list" id="inventoryList"></div>
+          </div>
+
+          <div class="admin-card">
+            <h3>관리자 설정</h3>
+            <div class="admin-list">
+              <label class="menu-desc">비밀번호 변경</label>
+              <div class="admin-login-form">
+                <input class="admin-input" id="adminNewPassword" type="password" placeholder="새 비밀번호" />
+                <button class="ghost" id="adminPasswordSave">저장</button>
+              </div>
+              <button class="ghost" id="adminLogout">로그아웃</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
