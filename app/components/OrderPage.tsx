@@ -387,11 +387,10 @@ export default function OrderPage() {
           로그아웃
         </button>
       </div>
-      <header className="grid gap-6 rounded-3xl bg-clay p-8 md:grid-cols-[1.2fr_0.8fr]">
+      <header className="grid gap-6 rounded-3xl bg-clay p-6 md:grid-cols-[1.2fr_0.8fr]">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-stone-500">COFFEE THE DREAM</p>
           <h1 className="mt-3 text-4xl font-semibold">메뉴 주문</h1>
-          <p className="mt-3 text-stone-600">원하는 메뉴를 선택하고 간편하게 주문하세요.</p>
           <div className="mt-6 flex flex-wrap gap-3">
             <a className="rounded-full bg-accent px-5 py-2 text-white shadow-soft" href="#menu">
               메뉴 보기
@@ -401,7 +400,7 @@ export default function OrderPage() {
             </a>
           </div>
         </div>
-        <div className="rounded-3xl bg-white p-6">
+        <div className="rounded-3xl bg-white p-4">
           <p className="text-sm text-stone-500">오늘의 추천</p>
           <h2 className="mt-3 text-xl font-semibold">
             {featured?.name || "추천 메뉴 없음"}
