@@ -28,7 +28,10 @@ export default function CustomerLoginPage() {
       }
       setMessage(null);
       const now = new Date();
-      const time = now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+      const time = now.toLocaleTimeString("ko-KR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
       localStorage.setItem(CUSTOMER_NAME_KEY, trimmed);
       localStorage.setItem(CUSTOMER_LOGIN_TIME_KEY, time);
       const { data, error } = await supabase
@@ -55,9 +58,11 @@ export default function CustomerLoginPage() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md items-center justify-center px-6 py-10">
-      <div className="w-full">
+      <div className="w-full" style={{ marginTop: "-100px" }}>
         <h1 className="text-2xl font-semibold">예뜀카페 COFFEE THE DREAM</h1>
-        <p className="mt-2 text-sm text-stone-500">주문을 위해 이름을 입력해주세요.</p>
+        <p className="mt-2 text-sm text-stone-500">
+          주문을 위해 이름을 입력해주세요.
+        </p>
         <form
           className="mt-6 grid gap-3"
           onSubmit={(e) => {
@@ -74,7 +79,10 @@ export default function CustomerLoginPage() {
               onChange={(e) => setName(e.target.value)}
             />
           </label>
-          <button className="mt-2 rounded-full bg-accent px-5 py-2 text-white" onClick={handleLogin}>
+          <button
+            className="mt-2 rounded-full bg-accent px-5 py-2 text-white"
+            onClick={handleLogin}
+          >
             로그인
           </button>
           {message && <p className="text-sm text-accent">{message}</p>}
