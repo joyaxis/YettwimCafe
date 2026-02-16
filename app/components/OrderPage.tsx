@@ -40,12 +40,15 @@ function saveLocalOrders(orders: LocalOrder[]) {
 export default function OrderPage() {
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [featured, setFeatured] = useState<MenuItem | null>(null);
-  const [cart, setCart] = useState<Record<string, { HOT: number; ICE: number }>>({});
+  const [cart, setCart] = useState<
+    Record<string, { HOT: number; ICE: number }>
+  >({});
   const [status, setStatus] = useState<string>("");
-  const [note, setNote] = useState<string>("");
   const [pickupTime, setPickupTime] = useState<string>("12:30");
   const [localOrders, setLocalOrders] = useState<LocalOrder[]>([]);
-  const [toasts, setToasts] = useState<{ id: string; message: string; tone?: "default" | "success" | "warning" }[]>([]);
+  const [toasts, setToasts] = useState<
+    { id: string; message: string; tone?: "default" | "success" | "warning" }[]
+  >([]);
   const [activeCategory, setActiveCategory] = useState<string>("전체");
   const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
   const [featuredKey, setFeaturedKey] = useState<string>("");
@@ -69,7 +72,10 @@ export default function OrderPage() {
     return { todayOrders, todayLabel };
   }, [localOrders]);
 
-  const pushToast = (message: string, tone: "default" | "success" | "warning" = "default") => {
+  const pushToast = (
+    message: string,
+    tone: "default" | "success" | "warning" = "default",
+  ) => {
     setToasts((prev) => [...prev, { id: crypto.randomUUID(), message, tone }]);
   };
 
@@ -114,7 +120,9 @@ export default function OrderPage() {
           }
         });
       }
-      lastOrderStatuses.current = orders.reduce<Record<string, LocalOrder["status"]>>((acc, order) => {
+      lastOrderStatuses.current = orders.reduce<
+        Record<string, LocalOrder["status"]>
+      >((acc, order) => {
         acc[order.id] = order.status;
         return acc;
       }, {});
@@ -140,7 +148,7 @@ export default function OrderPage() {
             table: "orders",
             filter: `customer_name=eq.${customerName}`,
           },
-          () => loadOrders()
+          () => loadOrders(),
         )
         .subscribe();
     });
@@ -157,11 +165,15 @@ export default function OrderPage() {
     let active = true;
     supabase
       .from("menu_items")
-      .select("id,name,description,price,category,image_url,recipe,is_hidden,is_hot,is_ice")
+      .select(
+        "id,name,description,price,category,image_url,recipe,is_hidden,is_hot,is_ice",
+      )
       .order("created_at", { ascending: true })
       .then(({ data }) => {
         if (!active) return;
-        const visible = ((data as MenuItem[]) || []).filter((item) => !item.is_hidden);
+        const visible = ((data as MenuItem[]) || []).filter(
+          (item) => !item.is_hidden,
+        );
         setMenu(visible);
         if (visible.length > 0) {
           const today = new Date().toISOString().slice(0, 10);
@@ -186,7 +198,7 @@ export default function OrderPage() {
           setFeaturedKey(pick.id);
           localStorage.setItem(
             "featured_menu_v1",
-            JSON.stringify({ date: today, id: pick.id })
+            JSON.stringify({ date: today, id: pick.id }),
           );
         }
       });
@@ -197,7 +209,9 @@ export default function OrderPage() {
       .order("name", { ascending: true })
       .then(({ data }) => {
         if (!active) return;
-        setCategoryOrder((data || []).map((item: { name: string }) => item.name));
+        setCategoryOrder(
+          (data || []).map((item: { name: string }) => item.name),
+        );
       });
     return () => {
       active = false;
@@ -231,15 +245,14 @@ export default function OrderPage() {
   const hasCartItems = useMemo(
     () =>
       menu.some(
-        (item) => (cart[item.id]?.HOT || 0) + (cart[item.id]?.ICE || 0) > 0
+        (item) => (cart[item.id]?.HOT || 0) + (cart[item.id]?.ICE || 0) > 0,
       ),
-    [cart, menu]
+    [cart, menu],
   );
 
   const getSelectedTemp = (item: MenuItem) => {
     const preferred =
-      tempById[item.id] ??
-      (item.is_hot ? "HOT" : item.is_ice ? "ICE" : null);
+      tempById[item.id] ?? (item.is_hot ? "HOT" : item.is_ice ? "ICE" : null);
     if (preferred === "HOT" && item.is_hot) return "HOT";
     if (preferred === "ICE" && item.is_ice) return "ICE";
     if (item.is_hot) return "HOT";
@@ -250,7 +263,7 @@ export default function OrderPage() {
   const updateQty = (
     item: MenuItem,
     diff: number,
-    forcedTemp?: "HOT" | "ICE"
+    forcedTemp?: "HOT" | "ICE",
   ) => {
     const temp = forcedTemp ?? getSelectedTemp(item);
     if (!temp) return;
@@ -323,7 +336,6 @@ export default function OrderPage() {
         discount: totals.discount,
         total: totals.total,
         pickup_time: pickupTime,
-        note,
         customer_name: storedName,
         customer_token: customerToken,
       })
@@ -335,14 +347,12 @@ export default function OrderPage() {
       return;
     }
 
-    const { error: itemError } = await supabase
-      .from("order_items")
-      .insert(
-        items.map((item) => ({
-          order_id: order.id,
-          ...item,
-        }))
-      );
+    const { error: itemError } = await supabase.from("order_items").insert(
+      items.map((item) => ({
+        order_id: order.id,
+        ...item,
+      })),
+    );
 
     if (itemError) {
       setStatus("주문 상세 저장에 실패했습니다.");
@@ -362,18 +372,16 @@ export default function OrderPage() {
     setLocalOrders(nextOrders);
     saveLocalOrders(nextOrders);
     setCart({});
-    setStatus(`주문 완료! 주문번호: ${order.order_code || order.id} (내 주문 내역에서 확인 가능)`);
+    setStatus(
+      `주문 완료! 주문번호: ${order.order_code || order.id} (내 주문 내역에서 확인 가능)`,
+    );
   };
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10">
       <PwaClient />
       <div className="flex justify-end -mt-6 text-xs text-stone-500">
-        {customerName && (
-          <span>
-            {customerName}님 반갑습니다
-          </span>
-        )}
+        {customerName && <span>{customerName}님 반갑습니다</span>}
         <span className="mx-2">|</span>
         <button
           className="underline"
@@ -391,13 +399,21 @@ export default function OrderPage() {
       </div>
       <header className="grid gap-6 rounded-3xl bg-clay p-6 md:grid-cols-[1.2fr_0.8fr]">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-stone-500">COFFEE THE DREAM</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
+            COFFEE THE DREAM
+          </p>
           <h1 className="mt-3 text-4xl font-semibold">메뉴 주문</h1>
           <div className="mt-6 flex flex-wrap gap-3">
-            <a className="rounded-full bg-accent px-5 py-2 text-white shadow-soft" href="#menu">
+            <a
+              className="rounded-full bg-accent px-5 py-2 text-white shadow-soft"
+              href="#menu"
+            >
               메뉴 보기
             </a>
-            <a className="rounded-full border border-accent px-5 py-2 text-accent" href="/orders">
+            <a
+              className="rounded-full border border-accent px-5 py-2 text-accent"
+              href="/orders"
+            >
               주문 내역 ({localOrders.length}건)
             </a>
           </div>
@@ -407,7 +423,9 @@ export default function OrderPage() {
           <h2 className="mt-3 text-xl font-semibold">
             {featured?.name || "추천 메뉴 없음"}
           </h2>
-          <p className="text-stone-500">{featured?.description || "등록된 메뉴가 없습니다."}</p>
+          <p className="text-stone-500">
+            {featured?.description || "등록된 메뉴가 없습니다."}
+          </p>
         </div>
       </header>
 
@@ -417,7 +435,7 @@ export default function OrderPage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-lg font-semibold">
-                {todayLabel} 주문 내역 ({todayOrders.length}건)
+                  {todayLabel} 주문 내역 ({todayOrders.length}건)
                 </h3>
                 <button
                   className="text-sm text-accent"
@@ -426,7 +444,9 @@ export default function OrderPage() {
                   {myOrdersOpen ? "접기" : "펼치기"}
                 </button>
               </div>
-              <p className="text-sm text-stone-500">오늘 주문한 내역만 표시됩니다.</p>
+              <p className="text-sm text-stone-500">
+                오늘 주문한 내역만 표시됩니다.
+              </p>
             </div>
             <div className="flex items-center gap-3">
               <a className="text-sm text-accent underline" href="/orders">
@@ -436,22 +456,29 @@ export default function OrderPage() {
           </div>
           {myOrdersOpen && (
             <div className="mt-4 space-y-3">
-            {todayOrders.length === 0 ? (
-              <p className="text-stone-500">아직 주문 내역이 없습니다.</p>
-            ) : (
-              todayOrders.map((order) => (
-                <div key={order.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-clay px-4 py-3">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="font-semibold">{order.order_code || order.id}</span>
-                    <StatusBadge status={order.status} />
+              {todayOrders.length === 0 ? (
+                <p className="text-stone-500">아직 주문 내역이 없습니다.</p>
+              ) : (
+                todayOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-clay px-4 py-3"
+                  >
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="font-semibold">
+                        {order.order_code || order.id}
+                      </span>
+                      <StatusBadge status={order.status} />
+                    </div>
+                    <span className="font-semibold">
+                      {Number(order.total).toLocaleString("ko-KR")}
+                    </span>
                   </div>
-                  <span className="font-semibold">{Number(order.total).toLocaleString("ko-KR")}</span>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </section>
+                ))
+              )}
+            </div>
+          )}
+        </section>
         <section id="menu" className="space-y-6">
           <div className="flex flex-wrap gap-2">
             {categories.map((category) => (
@@ -474,7 +501,7 @@ export default function OrderPage() {
               acc[key] ||= [];
               acc[key].push(item);
               return acc;
-            }, {})
+            }, {}),
           )
             .sort(([a], [b]) => {
               const aIndex = categories.indexOf(a);
@@ -491,15 +518,37 @@ export default function OrderPage() {
                   {items.map((item) => (
                     <article
                       key={item.id}
-                      className="flex h-full flex-col rounded-2xl border border-stone-200 bg-white p-4"
+                      className="flex h-full flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4"
                     >
-                      <h4 className="mt-4 text-lg font-semibold">{item.name}</h4>
-                      <p className="min-h-[3.5rem] flex-1 text-sm text-stone-500">{item.description}</p>
-                      <div className="mt-4 space-y-3">
+                      <h4 className="mt-1 text-lg font-semibold">
+                        {item.name}
+                      </h4>
+                      <p className="min-h-[3.5rem] flex-1 text-sm text-stone-500">
+                        {item.description}
+                      </p>
+                      <div className="space-y-3">
                         <span className="block text-right text-lg font-semibold">
                           {Number(item.price).toLocaleString("ko-KR")}
                         </span>
                         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                          <div className="flex w-full items-center justify-between rounded-full border border-stone-200 px-2 py-1 md:w-auto md:justify-center md:gap-3">
+                            <button
+                              className="h-7 w-7 rounded-full bg-accent text-white"
+                              onClick={() => updateQty(item, -1)}
+                            >
+                              -
+                            </button>
+                            <span className="w-6 text-center">
+                              {(cart[item.id]?.HOT || 0) +
+                                (cart[item.id]?.ICE || 0)}
+                            </span>
+                            <button
+                              className="h-7 w-7 rounded-full bg-accent text-white"
+                              onClick={() => updateQty(item, 1)}
+                            >
+                              +
+                            </button>
+                          </div>
                           {(item.is_hot || item.is_ice) && (
                             <div className="flex items-center gap-2 text-sm text-stone-500">
                               {item.is_hot && (
@@ -510,7 +559,10 @@ export default function OrderPage() {
                                       : "border-stone-300"
                                   }`}
                                   onClick={() =>
-                                    setTempById((prev) => ({ ...prev, [item.id]: "HOT" }))
+                                    setTempById((prev) => ({
+                                      ...prev,
+                                      [item.id]: "HOT",
+                                    }))
                                   }
                                 >
                                   HOT
@@ -524,7 +576,10 @@ export default function OrderPage() {
                                       : "border-stone-300"
                                   }`}
                                   onClick={() =>
-                                    setTempById((prev) => ({ ...prev, [item.id]: "ICE" }))
+                                    setTempById((prev) => ({
+                                      ...prev,
+                                      [item.id]: "ICE",
+                                    }))
                                   }
                                 >
                                   ICE
@@ -532,23 +587,6 @@ export default function OrderPage() {
                               )}
                             </div>
                           )}
-                          <div className="flex w-full items-center justify-between rounded-full border border-stone-200 px-2 py-1 md:w-auto md:justify-center md:gap-3">
-                            <button
-                              className="h-7 w-7 rounded-full bg-accent text-white"
-                              onClick={() => updateQty(item, -1)}
-                            >
-                              -
-                            </button>
-                            <span className="w-6 text-center">
-                              {(cart[item.id]?.HOT || 0) + (cart[item.id]?.ICE || 0)}
-                            </span>
-                            <button
-                              className="h-7 w-7 rounded-full bg-accent text-white"
-                              onClick={() => updateQty(item, 1)}
-                            >
-                              +
-                            </button>
-                          </div>
                         </div>
                       </div>
                     </article>
@@ -562,7 +600,9 @@ export default function OrderPage() {
           <aside
             id="order"
             className={`fixed inset-x-0 bottom-0 z-40 px-4 pb-4 md:bottom-6 md:right-6 md:left-auto md:w-[420px] lg:w-[460px] transition-all duration-300 ease-out ${
-              orderOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-90"
+              orderOpen
+                ? "translate-y-0 opacity-100"
+                : "translate-y-4 opacity-90"
             }`}
           >
             <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-soft">
@@ -571,21 +611,36 @@ export default function OrderPage() {
                 onClick={() => setOrderOpen((prev) => !prev)}
               >
                 <span className="text-lg font-semibold">주문 메뉴</span>
-                <span className="text-sm text-stone-500">{orderOpen ? "접기" : "펼치기"}</span>
+                <span className="text-sm text-stone-500">
+                  {orderOpen ? "접기" : "펼치기"}
+                </span>
               </button>
               <div className="mt-3 h-px w-full bg-stone-200" />
               {orderOpen && (
-                <div className="mt-4 space-y-6">
-                  <div className="flex items-center justify-end">
-                    <button className="text-sm text-accent" onClick={() => setCart({})}>
+                <div className="mt-4 space-y-3">
+                  <div className="flex justify-end">
+                    <button
+                      className="text-sm text-accent"
+                      onClick={() => {
+                        if (
+                          window.confirm("담은 메뉴를 모두 비우시겠습니까?")
+                        ) {
+                          setCart({});
+                        }
+                      }}
+                    >
                       비우기
                     </button>
                   </div>
                   <div className="space-y-3">
                     {menu.filter(
-                      (item) => (cart[item.id]?.HOT || 0) + (cart[item.id]?.ICE || 0) > 0
+                      (item) =>
+                        (cart[item.id]?.HOT || 0) + (cart[item.id]?.ICE || 0) >
+                        0,
                     ).length === 0 ? (
-                      <p className="text-stone-500">아직 담긴 메뉴가 없습니다.</p>
+                      <p className="text-stone-500">
+                        아직 담긴 메뉴가 없습니다.
+                      </p>
                     ) : (
                       menu.flatMap((item) => {
                         const rows = [];
@@ -605,12 +660,15 @@ export default function OrderPage() {
                                   </span>
                                 </p>
                                 <p className="text-sm text-stone-500">
-                                  {Number(item.price).toLocaleString("ko-KR")} × {hotQty}
+                                  {Number(item.price).toLocaleString("ko-KR")} ×{" "}
+                                  {hotQty}
                                 </p>
                               </div>
                               <div className="flex items-center gap-4">
                                 <span className="font-semibold">
-                                  {(Number(item.price) * hotQty).toLocaleString("ko-KR")}
+                                  {(Number(item.price) * hotQty).toLocaleString(
+                                    "ko-KR",
+                                  )}
                                 </span>
                                 <div className="flex items-center gap-2 rounded-full border border-stone-200 px-2 py-1">
                                   <button
@@ -619,11 +677,16 @@ export default function OrderPage() {
                                   >
                                     -
                                   </button>
-                                  <span className="w-6 text-center">{hotQty}</span>
+                                  <span className="w-6 text-center">
+                                    {hotQty}
+                                  </span>
                                   <button
                                     className="h-6 w-6 rounded-full bg-accent text-white"
                                     onClick={() => {
-                                      setTempById((prev) => ({ ...prev, [item.id]: "HOT" }));
+                                      setTempById((prev) => ({
+                                        ...prev,
+                                        [item.id]: "HOT",
+                                      }));
                                       updateQty(item, 1, "HOT");
                                     }}
                                   >
@@ -631,7 +694,7 @@ export default function OrderPage() {
                                   </button>
                                 </div>
                               </div>
-                            </div>
+                            </div>,
                           );
                         }
                         if (iceQty > 0) {
@@ -643,33 +706,44 @@ export default function OrderPage() {
                               <div>
                                 <p className="font-semibold">
                                   {item.name}
-                                  <span className="ml-2 rounded-full border border-stone-200 px-2 py-0.5 text-xs text-stone-500">
+                                  <span className="ml-2 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs text-blue-600">
                                     ICE
                                   </span>
                                 </p>
                                 <p className="text-sm text-stone-500">
-                                  {Number(item.price).toLocaleString("ko-KR")} × {iceQty}
+                                  {Number(item.price).toLocaleString("ko-KR")} ×{" "}
+                                  {iceQty}
                                 </p>
                               </div>
                               <div className="flex items-center gap-4">
                                 <span className="font-semibold">
-                                  {(Number(item.price) * iceQty).toLocaleString("ko-KR")}
+                                  {(Number(item.price) * iceQty).toLocaleString(
+                                    "ko-KR",
+                                  )}
                                 </span>
                                 <div className="flex items-center gap-2 rounded-full border border-stone-200 px-2 py-1">
                                   <button
                                     className="h-6 w-6 rounded-full bg-accent text-white"
                                     onClick={() => {
-                                      setTempById((prev) => ({ ...prev, [item.id]: "ICE" }));
+                                      setTempById((prev) => ({
+                                        ...prev,
+                                        [item.id]: "ICE",
+                                      }));
                                       updateQty(item, -1, "ICE");
                                     }}
                                   >
                                     -
                                   </button>
-                                  <span className="w-6 text-center">{iceQty}</span>
+                                  <span className="w-6 text-center">
+                                    {iceQty}
+                                  </span>
                                   <button
                                     className="h-6 w-6 rounded-full bg-accent text-white"
                                     onClick={() => {
-                                      setTempById((prev) => ({ ...prev, [item.id]: "ICE" }));
+                                      setTempById((prev) => ({
+                                        ...prev,
+                                        [item.id]: "ICE",
+                                      }));
                                       updateQty(item, 1, "ICE");
                                     }}
                                   >
@@ -677,7 +751,7 @@ export default function OrderPage() {
                                   </button>
                                 </div>
                               </div>
-                            </div>
+                            </div>,
                           );
                         }
                         return rows;
@@ -700,25 +774,15 @@ export default function OrderPage() {
                         <span>{totals.total.toLocaleString("ko-KR")}</span>
                       </div>
                     </div>
-                    <div className="mt-4 space-y-3">
-                    <label className="grid gap-2 text-sm text-stone-500">
-                      요청 사항
-                      <input
-                        type="text"
-                        value={note}
-                          onChange={(e) => setNote(e.target.value)}
-                          placeholder="예: 얼음 적게"
-                          className="rounded-xl border border-stone-200 px-3 py-2"
-                        />
-                      </label>
-                    </div>
                     <button
                       className="mt-5 w-full rounded-full bg-accent px-4 py-3 text-white shadow-soft"
                       onClick={handleOrder}
                     >
                       주문 완료
                     </button>
-                    {status && <p className="mt-3 text-sm text-accent">{status}</p>}
+                    {status && (
+                      <p className="mt-3 text-sm text-accent">{status}</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -743,13 +807,23 @@ export default function OrderPage() {
 function StatusBadge({ status }: { status: LocalOrder["status"] }) {
   const base = "inline-flex rounded-full px-3 py-1 text-xs font-semibold";
   if (status === "완료") {
-    return <span className={`${base} bg-emerald-100 text-emerald-700`}>{status}</span>;
+    return (
+      <span className={`${base} bg-emerald-100 text-emerald-700`}>
+        {status}
+      </span>
+    );
   }
   if (status === "음료준비중") {
-    return <span className={`${base} bg-amber-100 text-amber-700`}>{status}</span>;
+    return (
+      <span className={`${base} bg-amber-100 text-amber-700`}>{status}</span>
+    );
   }
   if (status === "주문취소") {
-    return <span className={`${base} bg-rose-100 text-rose-700`}>{status}</span>;
+    return (
+      <span className={`${base} bg-rose-100 text-rose-700`}>{status}</span>
+    );
   }
-  return <span className={`${base} bg-slate-100 text-slate-700`}>{status}</span>;
+  return (
+    <span className={`${base} bg-slate-100 text-slate-700`}>{status}</span>
+  );
 }
