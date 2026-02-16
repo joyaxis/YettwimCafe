@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "COFFEE THE DREAM",
+  title: "예뜀카페",
   description: "카페 메뉴 주문",
   manifest: "/manifest.json",
   themeColor: "#8b6f5c",

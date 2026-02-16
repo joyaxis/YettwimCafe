@@ -1,6 +1,6 @@
 {
-  "name": "COFFEE THE DREAM",
-  "short_name": "COFFEE",
+  "name": "예뜀카페",
+  "short_name": "예뜀카페",
   "description": "카페 메뉴 주문",
   "start_url": "/",
   "display": "standalone",
