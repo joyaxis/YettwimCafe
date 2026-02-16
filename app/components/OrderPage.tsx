@@ -531,24 +531,6 @@ export default function OrderPage() {
                           {Number(item.price).toLocaleString("ko-KR")}
                         </span>
                         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                          <div className="flex w-full items-center justify-between rounded-full border border-stone-200 px-2 py-1 md:w-auto md:justify-center md:gap-3">
-                            <button
-                              className="h-7 w-7 rounded-full bg-accent text-white"
-                              onClick={() => updateQty(item, -1)}
-                            >
-                              -
-                            </button>
-                            <span className="w-6 text-center">
-                              {(cart[item.id]?.HOT || 0) +
-                                (cart[item.id]?.ICE || 0)}
-                            </span>
-                            <button
-                              className="h-7 w-7 rounded-full bg-accent text-white"
-                              onClick={() => updateQty(item, 1)}
-                            >
-                              +
-                            </button>
-                          </div>
                           {(item.is_hot || item.is_ice) && (
                             <div className="flex items-center gap-2 text-sm text-stone-500">
                               {item.is_hot && (
@@ -587,6 +569,24 @@ export default function OrderPage() {
                               )}
                             </div>
                           )}
+                          <div className="flex w-full items-center justify-between rounded-full border border-stone-200 px-2 py-1 md:w-auto md:justify-center md:gap-3">
+                            <button
+                              className="h-7 w-7 rounded-full bg-accent text-white"
+                              onClick={() => updateQty(item, -1)}
+                            >
+                              -
+                            </button>
+                            <span className="w-6 text-center">
+                              {(cart[item.id]?.HOT || 0) +
+                                (cart[item.id]?.ICE || 0)}
+                            </span>
+                            <button
+                              className="h-7 w-7 rounded-full bg-accent text-white"
+                              onClick={() => updateQty(item, 1)}
+                            >
+                              +
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </article>
