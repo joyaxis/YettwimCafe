@@ -4,10 +4,22 @@ import { useEffect, useState } from "react";
 import AdminGate from "../../components/AdminGate";
 import { supabase } from "../../../lib/supabaseClient";
 import type { Order, OrderItem } from "../../../lib/types";
-import OrderTimeline, { type OrderEvent } from "../../orders/_components/OrderTimeline";
+import OrderTimeline, {
+  type OrderEvent,
+} from "../../orders/_components/OrderTimeline";
 
-const ORDER_STATUSES: Order["status"][] = ["주문요청", "음료준비중", "완료", "주문취소"];
-const ITEM_STATUSES: OrderItem["status"][] = ["주문요청", "제조중", "제조완료", "취소"];
+const ORDER_STATUSES: Order["status"][] = [
+  "주문요청",
+  "음료준비중",
+  "완료",
+  "주문취소",
+];
+const ITEM_STATUSES: OrderItem["status"][] = [
+  "주문요청",
+  "제조중",
+  "제조완료",
+  "취소",
+];
 
 type OrderWithItems = Order & { order_items: OrderItem[] };
 
@@ -30,21 +42,25 @@ export default function AdminOrdersPage() {
       order.status !== "주문취소" &&
       isInDateRange(order.created_at) &&
       (!nameQuery ||
-        (order.customer_name || "").toLowerCase().includes(nameQuery.toLowerCase()))
+        (order.customer_name || "")
+          .toLowerCase()
+          .includes(nameQuery.toLowerCase())),
   );
   const completedOrders = orders.filter(
     (order) =>
       (order.status === "완료" || order.status === "주문취소") &&
       isInDateRange(order.created_at) &&
       (!nameQuery ||
-        (order.customer_name || "").toLowerCase().includes(nameQuery.toLowerCase()))
+        (order.customer_name || "")
+          .toLowerCase()
+          .includes(nameQuery.toLowerCase())),
   );
 
   const load = async () => {
     const { data } = await supabase
       .from("orders")
       .select(
-        "id,order_code,status,subtotal,discount,total,pickup_time,note,created_at,customer_name,order_items(id,order_id,menu_item_id,name,qty,price,status,recipe)"
+        "id,order_code,status,subtotal,discount,total,pickup_time,note,created_at,customer_name,order_items(id,order_id,menu_item_id,name,qty,price,status,recipe)",
       )
       .order("created_at", { ascending: false });
     setOrders((data as OrderWithItems[]) || []);
@@ -58,12 +74,12 @@ export default function AdminOrdersPage() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "orders" },
-        () => load()
+        () => load(),
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "order_items" },
-        () => load()
+        () => load(),
       )
       .subscribe();
     return () => {
@@ -75,7 +91,7 @@ export default function AdminOrdersPage() {
   const updateOrderStatus = async (
     id: string,
     status: Order["status"],
-    fromStatus: Order["status"]
+    fromStatus: Order["status"],
   ) => {
     await supabase.from("orders").update({ status }).eq("id", id);
     await supabase.from("order_status_events").insert({
@@ -129,7 +145,7 @@ export default function AdminOrdersPage() {
     id: string,
     status: OrderItem["status"],
     fromStatus: OrderItem["status"],
-    orderId: string
+    orderId: string,
   ) => {
     await supabase.from("order_items").update({ status }).eq("id", id);
     await supabase.from("order_status_events").insert({
@@ -151,7 +167,9 @@ export default function AdminOrdersPage() {
             <input
               type="date"
               value={dateRange.from}
-              onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
+              onChange={(e) =>
+                setDateRange({ ...dateRange, from: e.target.value })
+              }
               className="rounded-full border border-stone-200 px-3 py-2 pr-8 text-sm"
             />
             {dateRange.from && (
@@ -170,7 +188,9 @@ export default function AdminOrdersPage() {
             <input
               type="date"
               value={dateRange.to}
-              onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
+              onChange={(e) =>
+                setDateRange({ ...dateRange, to: e.target.value })
+              }
               className="rounded-full border border-stone-200 px-3 py-2 pr-8 text-sm"
             />
             {dateRange.to && (
@@ -206,76 +226,16 @@ export default function AdminOrdersPage() {
           </div>
         </div>
         <div className="pt-2">
-          <h2 className="text-lg font-semibold">진행중 주문 ({inProgressOrders.length}건)</h2>
+          <h2 className="text-lg font-semibold">
+            진행 중 주문 ({inProgressOrders.length}건)
+          </h2>
         </div>
-        {inProgressOrders.map((order) => (
-          <div
-            key={order.id}
-            className={`rounded-2xl border border-stone-200 p-6 ${
-              order.status === "완료" || order.status === "주문취소"
-                ? "bg-stone-100"
-                : "bg-white"
-            }`}
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-lg font-semibold">주문번호 {order.order_code || order.id}</h3>
-                  {(order.status === "완료" || order.status === "주문취소") && (
-                    <button
-                      className="rounded-full border border-red-300 px-3 py-1 text-xs text-red-600"
-                      onClick={async () => {
-                        if (!confirm("삭제하시겠습니까?")) return;
-                        await supabase.from("orders").delete().eq("id", order.id);
-                        window.location.reload();
-                        await load();
-                      }}
-                    >
-                      주문 삭제
-                    </button>
-                  )}
-                </div>
-                <p className="text-sm text-stone-500">
-                  {order.customer_name ? `주문자 ${order.customer_name} · ` : ""}
-                  총 결제 {Number(order.total).toLocaleString("ko-KR")} · 주문 일시{" "}
-                  {order.created_at
-                    ? new Date(order.created_at).toLocaleString("sv-SE").replace(" ", " ")
-                    : "-"}
-                </p>
-              </div>
-              <select
-                className="rounded-xl border border-stone-200 px-3 py-2"
-                value={order.status}
-                onChange={(e) =>
-                  updateOrderStatus(
-                    order.id,
-                    e.target.value as Order["status"],
-                    order.status
-                  )
-                }
-              >
-                {ORDER_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <OrderItemsPanel
-              items={order.order_items || []}
-              orderId={order.id}
-              defaultOpen={order.status !== "완료" && order.status !== "주문취소"}
-              onUpdate={updateItemStatus}
-            />
+        {inProgressOrders.length === 0 ? (
+          <div className="rounded-2xl border border-stone-200 bg-white p-6">
+            <p>진행 중인 주문이 없습니다.</p>
           </div>
-        ))}
-
-        <div className="pt-2">
-          <h2 className="text-lg font-semibold">완료/취소 주문 ({completedOrders.length}건)</h2>
-        </div>
-
-        {completedOrders.map((order) => (
+        ) : (
+          inProgressOrders.map((order) => (
             <div
               key={order.id}
               className={`rounded-2xl border border-stone-200 p-6 ${
@@ -287,13 +247,19 @@ export default function AdminOrdersPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-lg font-semibold">주문번호 {order.order_code || order.id}</h3>
-                    {(order.status === "완료" || order.status === "주문취소") && (
+                    <h3 className="text-lg font-semibold">
+                      주문번호 {order.order_code || order.id}
+                    </h3>
+                    {(order.status === "완료" ||
+                      order.status === "주문취소") && (
                       <button
                         className="rounded-full border border-red-300 px-3 py-1 text-xs text-red-600"
                         onClick={async () => {
                           if (!confirm("삭제하시겠습니까?")) return;
-                          await supabase.from("orders").delete().eq("id", order.id);
+                          await supabase
+                            .from("orders")
+                            .delete()
+                            .eq("id", order.id);
                           window.location.reload();
                           await load();
                         }}
@@ -303,10 +269,15 @@ export default function AdminOrdersPage() {
                     )}
                   </div>
                   <p className="text-sm text-stone-500">
-                    {order.customer_name ? `주문자 ${order.customer_name} · ` : ""}
-                    총 결제 {Number(order.total).toLocaleString("ko-KR")} · 주문 일시{" "}
+                    {order.customer_name
+                      ? `주문자 ${order.customer_name} · `
+                      : ""}
+                    총 결제 {Number(order.total).toLocaleString("ko-KR")} · 주문
+                    일시{" "}
                     {order.created_at
-                      ? new Date(order.created_at).toLocaleString("sv-SE").replace(" ", " ")
+                      ? new Date(order.created_at)
+                          .toLocaleString("sv-SE")
+                          .replace(" ", " ")
                       : "-"}
                   </p>
                 </div>
@@ -317,7 +288,7 @@ export default function AdminOrdersPage() {
                     updateOrderStatus(
                       order.id,
                       e.target.value as Order["status"],
-                      order.status
+                      order.status,
                     )
                   }
                 >
@@ -332,17 +303,103 @@ export default function AdminOrdersPage() {
               <OrderItemsPanel
                 items={order.order_items || []}
                 orderId={order.id}
-                defaultOpen={order.status !== "완료" && order.status !== "주문취소"}
+                defaultOpen={
+                  order.status !== "완료" && order.status !== "주문취소"
+                }
                 onUpdate={updateItemStatus}
               />
             </div>
-        ))}
+          ))
+        )}
 
-        {orders.length === 0 && (
+        <div className="pt-2">
+          <h2 className="text-lg font-semibold">
+            완료/취소 주문 ({completedOrders.length}건)
+          </h2>
+        </div>
+
+        {completedOrders.length === 0 ? (
           <div className="rounded-2xl border border-stone-200 bg-white p-6">
             <p>주문 내역이 없습니다.</p>
           </div>
+        ) : (
+          completedOrders.map((order) => (
+            <div
+              key={order.id}
+              className={`rounded-2xl border border-stone-200 p-6 ${
+                order.status === "완료" || order.status === "주문취소"
+                  ? "bg-stone-100"
+                  : "bg-white"
+              }`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-lg font-semibold">
+                      주문번호 {order.order_code || order.id}
+                    </h3>
+                    {(order.status === "완료" ||
+                      order.status === "주문취소") && (
+                      <button
+                        className="rounded-full border border-red-300 px-3 py-1 text-xs text-red-600"
+                        onClick={async () => {
+                          if (!confirm("삭제하시겠습니까?")) return;
+                          await supabase
+                            .from("orders")
+                            .delete()
+                            .eq("id", order.id);
+                          window.location.reload();
+                          await load();
+                        }}
+                      >
+                        주문 삭제
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-sm text-stone-500">
+                    {order.customer_name
+                      ? `주문자 ${order.customer_name} · `
+                      : ""}
+                    총 결제 {Number(order.total).toLocaleString("ko-KR")} · 주문
+                    일시{" "}
+                    {order.created_at
+                      ? new Date(order.created_at)
+                          .toLocaleString("sv-SE")
+                          .replace(" ", " ")
+                      : "-"}
+                  </p>
+                </div>
+                <select
+                  className="rounded-xl border border-stone-200 px-3 py-2"
+                  value={order.status}
+                  onChange={(e) =>
+                    updateOrderStatus(
+                      order.id,
+                      e.target.value as Order["status"],
+                      order.status,
+                    )
+                  }
+                >
+                  {ORDER_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <OrderItemsPanel
+                items={order.order_items || []}
+                orderId={order.id}
+                defaultOpen={
+                  order.status !== "완료" && order.status !== "주문취소"
+                }
+                onUpdate={updateItemStatus}
+              />
+            </div>
+          ))
         )}
+
       </div>
     </AdminGate>
   );
@@ -377,8 +434,13 @@ function OrderTimelineAdmin({
       .channel(`admin-order-events-${orderId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "order_status_events", filter: `order_id=eq.${orderId}` },
-        () => load()
+        {
+          event: "*",
+          schema: "public",
+          table: "order_status_events",
+          filter: `order_id=eq.${orderId}`,
+        },
+        () => load(),
       )
       .subscribe();
 
@@ -395,14 +457,18 @@ function OrderTimelineAdmin({
         onClick={() => setOpen((prev) => !prev)}
       >
         <h4 className="text-sm font-semibold">상태 변경 이력</h4>
-        <span className="text-xs text-stone-500">{open ? "접기" : "펼치기"}</span>
+        <span className="text-xs text-stone-500">
+          {open ? "접기" : "펼치기"}
+        </span>
       </button>
       {open && (
         <div className="mt-2">
           <OrderTimeline
             events={events.map((event) => ({
               ...event,
-              item_name: items.find((item) => item.id === event.order_item_id)?.name || null,
+              item_name:
+                items.find((item) => item.id === event.order_item_id)?.name ||
+                null,
             }))}
           />
         </div>
@@ -424,7 +490,7 @@ function OrderItemsPanel({
     id: string,
     status: OrderItem["status"],
     fromStatus: OrderItem["status"],
-    orderId: string
+    orderId: string,
   ) => void;
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -435,22 +501,27 @@ function OrderItemsPanel({
         className="flex w-full items-center justify-between text-left"
         onClick={() => setOpen((prev) => !prev)}
       >
-        <h4 className="text-sm font-semibold">
-          주문 메뉴 ({items.length}건)
-        </h4>
-        <span className="text-xs text-stone-500">{open ? "접기" : "펼치기"}</span>
+        <h4 className="text-sm font-semibold">주문 메뉴 ({items.length}건)</h4>
+        <span className="text-xs text-stone-500">
+          {open ? "접기" : "펼치기"}
+        </span>
       </button>
       {open && (
         <div className="mt-3 divide-y divide-stone-200 border-t border-stone-200">
           {items.map((item) => (
-            <div key={item.id} className="flex flex-wrap items-center justify-between gap-4 py-3">
+            <div
+              key={item.id}
+              className="flex flex-wrap items-center justify-between gap-4 py-3"
+            >
               <div>
                 <p className="font-semibold">{item.name}</p>
                 <p className="text-sm text-stone-500">
                   {Number(item.price).toLocaleString("ko-KR")} × {item.qty}
                 </p>
                 {item.recipe && (
-                  <div className="mt-1 text-sm text-stone-500">레시피: {item.recipe}</div>
+                  <div className="mt-1 text-sm text-stone-500">
+                    레시피: {item.recipe}
+                  </div>
                 )}
               </div>
               <select
@@ -461,7 +532,7 @@ function OrderItemsPanel({
                     item.id,
                     e.target.value as OrderItem["status"],
                     item.status,
-                    orderId
+                    orderId,
                   )
                 }
               >

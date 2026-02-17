@@ -12,6 +12,7 @@ type SalesRow = {
   orders?: {
     created_at?: string;
     customer_name?: string | null;
+    status?: string;
   } | null;
 };
 
@@ -23,7 +24,7 @@ export default function AdminSalesPage() {
   const load = async () => {
     let query = supabase
       .from("order_items")
-      .select("id,name,qty,price,orders:order_id(created_at,customer_name)")
+      .select("id,name,qty,price,orders:order_id(created_at,customer_name,status)")
       .order("created_at", { ascending: false, foreignTable: "orders" });
 
     if (nameQuery.trim()) {
@@ -32,6 +33,7 @@ export default function AdminSalesPage() {
 
     const { data } = await query;
     const filtered = ((data as SalesRow[]) || []).filter((item) => {
+      if (item.orders?.status !== "완료") return false;
       if (!date) return true;
       const createdAt = item.orders?.created_at;
       if (!createdAt) return false;
