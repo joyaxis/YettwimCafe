@@ -1,4 +1,4 @@
-const CACHE_NAME = "coffee-the-dream-v1";
+const CACHE_NAME = "coffee-the-dream-v2";
 const CORE_ASSETS = ["/", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
@@ -23,6 +23,11 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  if (url.pathname.startsWith("/_next/")) {
+    event.respondWith(fetch(request));
+    return;
+  }
 
   if (request.mode === "navigate") {
     event.respondWith(

@@ -4,7 +4,6 @@ export const metadata = {
   title: "예뜀카페",
   description: "카페 메뉴 주문",
   manifest: "/manifest.json",
-  themeColor: "#8b6f5c",
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
@@ -12,6 +11,10 @@ export const metadata = {
     ],
     apple: "/icons/icon-180.png",
   },
+};
+
+export const viewport = {
+  themeColor: "#8b6f5c",
 };
 
 export default function RootLayout({
