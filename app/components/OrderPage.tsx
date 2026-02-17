@@ -465,9 +465,12 @@ export default function OrderPage() {
                     className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-clay px-4 py-3"
                   >
                     <div className="flex flex-wrap items-center gap-3">
-                      <span className="font-semibold">
+                      <a
+                        className="font-semibold text-accent underline"
+                        href={`/orders/${order.id}`}
+                      >
                         {order.order_code || order.id}
-                      </span>
+                      </a>
                       <StatusBadge status={order.status} />
                     </div>
                     <span className="font-semibold">
