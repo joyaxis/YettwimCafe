@@ -16,10 +16,15 @@ export default function OrderDetailPage() {
   const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [items, setItems] = useState<OrderItem[]>([]);
-  const [toasts, setToasts] = useState<{ id: string; message: string; tone?: "default" | "success" | "warning" }[]>([]);
+  const [toasts, setToasts] = useState<
+    { id: string; message: string; tone?: "default" | "success" | "warning" }[]
+  >([]);
   const [events, setEvents] = useState<OrderEvent[]>([]);
 
-  const pushToast = (message: string, tone: "default" | "success" | "warning" = "default") => {
+  const pushToast = (
+    message: string,
+    tone: "default" | "success" | "warning" = "default",
+  ) => {
     setToasts((prev) => [...prev, { id: crypto.randomUUID(), message, tone }]);
   };
 
@@ -44,7 +49,9 @@ export default function OrderDetailPage() {
 
       const { data: orderData } = await supabase
         .from("orders")
-        .select("id,order_code,status,subtotal,discount,total,pickup_time,note,created_at,customer_name")
+        .select(
+          "id,order_code,status,subtotal,discount,total,pickup_time,note,created_at,customer_name",
+        )
         .eq("id", orderId)
         .eq("customer_name", storedName)
         .maybeSingle();
@@ -92,14 +99,19 @@ export default function OrderDetailPage() {
             const updated = payload.new as Order;
             setOrder(updated);
             const code = updated.order_code || updated.id;
-            pushToast(`${code} 주문 상태 변경 : "${updated.status}"`, "success");
+            pushToast(
+              `${code} 주문 상태 변경 : "${updated.status}"`,
+              "success",
+            );
             supabase
               .from("order_status_events")
-              .select("id,entity_type,from_status,to_status,created_at,order_item_id")
+              .select(
+                "id,entity_type,from_status,to_status,created_at,order_item_id",
+              )
               .eq("order_id", orderId)
               .order("created_at", { ascending: false })
               .then(({ data }) => setEvents(data || []));
-          }
+          },
         )
         .on(
           "postgres_changes",
@@ -111,15 +123,22 @@ export default function OrderDetailPage() {
           },
           (payload) => {
             const updated = payload.new as OrderItem;
-            setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
-            pushToast(`${updated.name} 상태 변경: ${updated.status}`, "warning");
+            setItems((prev) =>
+              prev.map((item) => (item.id === updated.id ? updated : item)),
+            );
+            pushToast(
+              `${updated.name} 상태 변경: ${updated.status}`,
+              "warning",
+            );
             supabase
               .from("order_status_events")
-              .select("id,entity_type,from_status,to_status,created_at,order_item_id")
+              .select(
+                "id,entity_type,from_status,to_status,created_at,order_item_id",
+              )
               .eq("order_id", orderId)
               .order("created_at", { ascending: false })
               .then(({ data }) => setEvents(data || []));
-          }
+          },
         )
         .subscribe();
     });
@@ -137,7 +156,9 @@ export default function OrderDetailPage() {
         <Link className="text-sm text-stone-500 underline" href="/orders">
           주문 목록으로 돌아가기
         </Link>
-        <div className="rounded-2xl border border-stone-200 bg-white p-6">주문 정보를 불러오는 중...</div>
+        <div className="rounded-2xl border border-stone-200 bg-white p-6">
+          주문 정보를 불러오는 중...
+        </div>
       </main>
     );
   }
@@ -145,29 +166,48 @@ export default function OrderDetailPage() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link className="rounded-full border border-stone-300 px-4 py-2 text-sm" href="/orders">
+        <Link
+          className="rounded-full border border-stone-300 px-4 py-2 text-sm"
+          href="/orders"
+        >
           주문 목록으로 돌아가기
         </Link>
-        <Link className="rounded-full border border-stone-300 px-4 py-2 text-sm" href="/">
+        <Link
+          className="rounded-full border border-stone-300 px-4 py-2 text-sm"
+          href="/"
+        >
           홈으로
         </Link>
       </div>
-      <header className="rounded-2xl border border-stone-200 bg-white p-6">
-        <h1 className="text-2xl font-semibold">주문번호 {order.order_code || order.id}</h1>
+      <header className="rounded-2xl border border-stone-200 bg-stone-50 p-6">
+        <h1 className="text-2xl font-semibold">
+          주문번호 {order.order_code || order.id}
+        </h1>
         <div className="mt-2 text-stone-500 flex items-center gap-2">
           <span>상태:</span>
           <StatusBadge status={order.status} />
         </div>
         <p className="mt-2 text-stone-500">
           {order.customer_name ? `주문자: ${order.customer_name} · ` : ""}
-          주문 일시: {order.created_at ? new Date(order.created_at).toLocaleString("sv-SE").replace(" ", " ") : "-"}
+          주문 일시:{" "}
+          {order.created_at
+            ? new Date(order.created_at)
+                .toLocaleString("sv-SE")
+                .replace(" ", " ")
+            : "-"}
         </p>
       </header>
       <section className="rounded-2xl border border-stone-200 bg-white p-6">
         <h2 className="text-lg font-semibold">메뉴 상세</h2>
+        <div className="mt-2 h-px w-full bg-stone-200" />
         <div className="mt-4 space-y-3">
-          {items.map((item) => (
-            <div key={item.id} className="rounded-xl border border-stone-200 p-4">
+          {items.map((item, index) => (
+            <div
+              key={item.id}
+              className={`py-4 ${
+                index === items.length - 1 ? "" : "border-b border-stone-200"
+              }`}
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-semibold">{item.name}</p>
@@ -177,13 +217,18 @@ export default function OrderDetailPage() {
                 </div>
                 <StatusBadge status={item.status} />
               </div>
-              {item.recipe && <p className="mt-2 text-sm text-stone-500">레시피: {item.recipe}</p>}
+              {item.recipe && (
+                <p className="mt-2 text-sm text-stone-500">
+                  레시피: {item.recipe}
+                </p>
+              )}
             </div>
           ))}
         </div>
       </section>
       <section className="rounded-2xl border border-stone-200 bg-white p-6">
         <h2 className="text-lg font-semibold">결제 정보</h2>
+        <div className="mt-2 h-px w-full bg-stone-200" />
         <div className="mt-3 space-y-2 text-stone-600">
           <div className="flex items-center justify-between">
             <span>소계</span>
@@ -207,16 +252,30 @@ export default function OrderDetailPage() {
   );
 }
 
-function StatusBadge({ status }: { status: Order["status"] | OrderItem["status"] }) {
+function StatusBadge({
+  status,
+}: {
+  status: Order["status"] | OrderItem["status"];
+}) {
   const base = "inline-flex rounded-full px-3 py-1 text-xs font-semibold";
   if (status === "완료" || status === "제조완료") {
-    return <span className={`${base} bg-emerald-100 text-emerald-700`}>{status}</span>;
+    return (
+      <span className={`${base} bg-emerald-100 text-emerald-700`}>
+        {status}
+      </span>
+    );
   }
   if (status === "음료준비중" || status === "제조중") {
-    return <span className={`${base} bg-amber-100 text-amber-700`}>{status}</span>;
+    return (
+      <span className={`${base} bg-amber-100 text-amber-700`}>{status}</span>
+    );
   }
   if (status === "주문취소" || status === "취소") {
-    return <span className={`${base} bg-rose-100 text-rose-700`}>{status}</span>;
+    return (
+      <span className={`${base} bg-rose-100 text-rose-700`}>{status}</span>
+    );
   }
-  return <span className={`${base} bg-stone-100 text-stone-600`}>{status}</span>;
+  return (
+    <span className={`${base} bg-stone-100 text-stone-600`}>{status}</span>
+  );
 }
