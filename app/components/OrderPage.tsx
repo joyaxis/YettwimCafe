@@ -58,6 +58,7 @@ export default function OrderPage() {
   const initialOrdersLoaded = useRef(false);
   const [myOrdersOpen, setMyOrdersOpen] = useState(true);
   const [customerName, setCustomerName] = useState<string>("");
+  const [copyNotice, setCopyNotice] = useState<string>("");
   const [loginTime, setLoginTime] = useState<string>("");
   const router = useRouter();
   const { todayOrders, todayLabel } = useMemo(() => {
@@ -372,9 +373,8 @@ export default function OrderPage() {
     setLocalOrders(nextOrders);
     saveLocalOrders(nextOrders);
     setCart({});
-    setStatus(
-      `주문 완료! 주문번호: ${order.order_code || order.id} (내 주문 내역에서 확인 가능)`,
-    );
+    setTempById({});
+    setStatus("");
   };
 
   return (
@@ -783,12 +783,19 @@ export default function OrderPage() {
                           className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-stone-300 text-sm text-stone-600"
                           aria-label="계좌번호 복사"
                           title="계좌번호 복사하기"
-                          onClick={() =>
-                            navigator.clipboard.writeText("3333311427151")
-                          }
+                          onClick={() => {
+                            navigator.clipboard.writeText("3333311427151");
+                            setCopyNotice("복사되었습니다.");
+                            window.setTimeout(() => setCopyNotice(""), 2000);
+                          }}
                         >
                           ⧉
                         </button>
+                        {copyNotice && (
+                          <span className="ml-2 text-xs text-stone-500">
+                            {copyNotice}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <button

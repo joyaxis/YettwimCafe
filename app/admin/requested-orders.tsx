@@ -7,6 +7,7 @@ import type { Order } from "../../lib/types";
 
 export default function OrdersRequested() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -17,8 +18,13 @@ export default function OrdersRequested() {
         .not("status", "in", "(완료,주문취소)")
         .order("created_at", { ascending: false })
         .limit(5);
+      const { count } = await supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .not("status", "in", "(완료,주문취소)");
       if (!active) return;
       setOrders((data as Order[]) || []);
+      setTotalCount(count || 0);
     };
     load();
     const interval = window.setInterval(load, 3000);
@@ -49,7 +55,7 @@ export default function OrdersRequested() {
       <div className="flex items-center justify-between gap-6">
         <div>
           <h2 className="text-lg font-semibold">
-            현재 주문요청 ({orders.length}건)
+            현재 주문 건수 (총 {totalCount}건)
           </h2>
         </div>
         <Link className="text-sm text-accent underline" href="/admin/orders">
