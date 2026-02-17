@@ -147,27 +147,63 @@ export default function AdminOrdersPage() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-stone-200 bg-white p-4">
           <span className="text-sm text-stone-500">날짜 필터</span>
-          <input
-            type="date"
-            value={dateRange.from}
-            onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
-            className="rounded-full border border-stone-200 px-3 py-2 text-sm"
-          />
+          <div className="relative">
+            <input
+              type="date"
+              value={dateRange.from}
+              onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
+              className="rounded-full border border-stone-200 px-3 py-2 pr-8 text-sm"
+            />
+            {dateRange.from && (
+              <button
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400"
+                onClick={() => setDateRange({ ...dateRange, from: "" })}
+                aria-label="시작일 지우기"
+                title="지우기"
+              >
+                ✕
+              </button>
+            )}
+          </div>
           <span className="text-stone-400">~</span>
-          <input
-            type="date"
-            value={dateRange.to}
-            onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
-            className="rounded-full border border-stone-200 px-3 py-2 text-sm"
-          />
+          <div className="relative">
+            <input
+              type="date"
+              value={dateRange.to}
+              onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
+              className="rounded-full border border-stone-200 px-3 py-2 pr-8 text-sm"
+            />
+            {dateRange.to && (
+              <button
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400"
+                onClick={() => setDateRange({ ...dateRange, to: "" })}
+                aria-label="종료일 지우기"
+                title="지우기"
+              >
+                ✕
+              </button>
+            )}
+          </div>
           <span className="text-stone-400">|</span>
-          <input
-            type="text"
-            placeholder="주문자명 검색"
-            value={nameQuery}
-            onChange={(e) => setNameQuery(e.target.value)}
-            className="rounded-full border border-stone-200 px-3 py-2 text-sm"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="주문자명 검색"
+              value={nameQuery}
+              onChange={(e) => setNameQuery(e.target.value)}
+              className="rounded-full border border-stone-200 px-3 py-2 pr-8 text-sm"
+            />
+            {nameQuery && (
+              <button
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400"
+                onClick={() => setNameQuery("")}
+                aria-label="검색어 지우기"
+                title="지우기"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
         <div className="pt-2">
           <h2 className="text-lg font-semibold">진행중 주문 ({inProgressOrders.length}건)</h2>

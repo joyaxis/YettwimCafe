@@ -66,19 +66,43 @@ export default function AdminCategoriesPage() {
             <h2 className="text-lg font-semibold">카테고리 추가</h2>
             <p className="mt-2 text-sm text-stone-500">정렬 순서는 숫자가 낮을수록 먼저 표시됩니다.</p>
             <div className="mt-5 flex flex-wrap items-center gap-2 md:grid md:gap-3">
-              <input
-                className="w-44 rounded-xl border border-stone-200 px-4 py-2 md:w-full"
-                placeholder="카테고리명"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <input
-                className="w-20 rounded-xl border border-stone-200 px-3 py-2 text-center md:w-full md:px-4 md:text-left"
-                type="number"
-                placeholder="정렬 순서"
-                value={sortOrder}
-                onChange={(e) => setSortOrder(Number(e.target.value))}
-              />
+              <div className="relative w-44 md:w-full">
+                <input
+                  className="w-full rounded-xl border border-stone-200 px-4 py-2 pr-9"
+                  placeholder="카테고리명"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+                {name && (
+                  <button
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400"
+                    onClick={() => setName("")}
+                    aria-label="카테고리명 지우기"
+                    title="지우기"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              <div className="relative w-20 md:w-full">
+                <input
+                  className="w-full rounded-xl border border-stone-200 px-3 py-2 pr-9 text-center md:px-4 md:text-left"
+                  type="number"
+                  placeholder="정렬 순서"
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(Number(e.target.value))}
+                />
+                {sortOrder !== 0 && (
+                  <button
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-stone-400"
+                    onClick={() => setSortOrder(0)}
+                    aria-label="정렬 순서 지우기"
+                    title="지우기"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
               <button className="rounded-full bg-accent px-4 py-2 text-white md:px-5" onClick={addCategory}>
                 추가
               </button>

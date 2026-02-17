@@ -69,18 +69,42 @@ export default function AdminSalesPage() {
             <p className="mt-1 text-sm text-stone-500">주문 메뉴 기준으로 표시됩니다.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <input
-              type="date"
-              className="rounded-full border border-stone-200 px-4 py-2 text-sm"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-            <input
-              className="rounded-full border border-stone-200 px-4 py-2 text-sm"
-              placeholder="주문자 검색"
-              value={nameQuery}
-              onChange={(e) => setNameQuery(e.target.value)}
-            />
+            <div className="relative">
+              <input
+                type="date"
+                className="rounded-full border border-stone-200 px-4 py-2 pr-9 text-sm"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+              {date && (
+                <button
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400"
+                  onClick={() => setDate("")}
+                  aria-label="날짜 지우기"
+                  title="지우기"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                className="rounded-full border border-stone-200 px-4 py-2 pr-9 text-sm"
+                placeholder="주문자 검색"
+                value={nameQuery}
+                onChange={(e) => setNameQuery(e.target.value)}
+              />
+              {nameQuery && (
+                <button
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400"
+                  onClick={() => setNameQuery("")}
+                  aria-label="검색어 지우기"
+                  title="지우기"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

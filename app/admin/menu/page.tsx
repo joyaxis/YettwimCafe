@@ -23,6 +23,9 @@ export default function AdminMenuPage() {
   const [editing, setEditing] = useState<MenuItem | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("전체");
   const [showHidden, setShowHidden] = useState(false);
+  const [menuTab, setMenuTab] = useState<"list" | "recipe">("list");
+  const [recipeDrafts, setRecipeDrafts] = useState<Record<string, string>>({});
+  const [recipeNotice, setRecipeNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("admin_menu_view");
@@ -42,7 +45,17 @@ export default function AdminMenuPage() {
         "id,name,description,price,category,recipe,is_hidden,is_hot,is_ice",
       )
       .order("created_at", { ascending: true });
-    setMenu((data as MenuItem[]) || []);
+    const nextMenu = (data as MenuItem[]) || [];
+    setMenu(nextMenu);
+    setRecipeDrafts((prev) => {
+      const next = { ...prev };
+      nextMenu.forEach((item) => {
+        if (next[item.id] === undefined) {
+          next[item.id] = item.recipe || "";
+        }
+      });
+      return next;
+    });
 
     const { data: categoryData } = await supabase
       .from("categories")
@@ -89,6 +102,21 @@ export default function AdminMenuPage() {
     await load();
   };
 
+  const updateRecipe = async (id: string, recipe: string) => {
+    const { error } = await supabase
+      .from("menu_items")
+      .update({ recipe })
+      .eq("id", id);
+    if (error) {
+      setRecipeNotice(`저장 실패: ${error.message}`);
+      window.setTimeout(() => setRecipeNotice(null), 3000);
+      return;
+    }
+    await load();
+    setRecipeNotice("저장되었습니다");
+    window.setTimeout(() => setRecipeNotice(null), 2000);
+  };
+
   const deleteItem = async (id: string, name: string) => {
     if (!window.confirm(`선택한 "${name}" 을(를) 삭제하시겠습니까?`)) {
       return;
@@ -118,23 +146,47 @@ export default function AdminMenuPage() {
                   </option>
                 ))}
               </select>
-              <input
-                className="rounded-xl border border-stone-200 px-4 py-2"
-                placeholder="메뉴명"
-                value={draft.name}
-                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-              />
-              <div className="flex items-center gap-3 md:contents">
+              <div className="relative">
                 <input
-                  className="w-40 rounded-xl border border-stone-200 px-4 py-2 md:w-full"
-                  type="number"
-                  min="0"
-                  placeholder="가격"
-                  value={draft.price}
-                  onChange={(e) =>
-                    setDraft({ ...draft, price: Number(e.target.value) })
-                  }
+                  className="w-full rounded-xl border border-stone-200 px-4 py-2 pr-9"
+                  placeholder="메뉴명"
+                  value={draft.name}
+                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                 />
+                {draft.name && (
+                  <button
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400"
+                    onClick={() => setDraft({ ...draft, name: "" })}
+                    aria-label="메뉴명 지우기"
+                    title="지우기"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-3 md:contents">
+                <div className="relative w-48 md:w-full">
+                  <input
+                    className="w-full rounded-xl border border-stone-200 px-4 py-2 pr-4"
+                    type="number"
+                    min="0"
+                    placeholder="가격"
+                    value={draft.price}
+                    onChange={(e) =>
+                      setDraft({ ...draft, price: Number(e.target.value) })
+                    }
+                  />
+                  {draft.price !== 0 && (
+                    <button
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400"
+                      onClick={() => setDraft({ ...draft, price: 0 })}
+                      aria-label="가격 지우기"
+                      title="지우기"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
                 <div className="flex flex-wrap items-center justify-start gap-4 text-sm text-stone-600 md:justify-end">
                   <label className="flex items-center gap-2 text-red-600">
                     <input
@@ -163,72 +215,111 @@ export default function AdminMenuPage() {
                 </div>
               </div>
             </div>
-            <input
-              className="rounded-xl border border-stone-200 px-4 py-2 md:col-span-2"
-              placeholder="설명"
-              value={draft.description}
-              onChange={(e) =>
-                setDraft({ ...draft, description: e.target.value })
-              }
-            />
+            <div className="relative md:col-span-2">
+              <input
+                className="w-full rounded-xl border border-stone-200 px-4 py-2 pr-9"
+                placeholder="설명"
+                value={draft.description}
+                onChange={(e) =>
+                  setDraft({ ...draft, description: e.target.value })
+                }
+              />
+              {draft.description && (
+                <button
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400"
+                  onClick={() => setDraft({ ...draft, description: "" })}
+                  aria-label="설명 지우기"
+                  title="지우기"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
-          <button
-            className="mt-4 rounded-full bg-accent px-5 py-2 text-white"
-            onClick={addItem}
-          >
-            추가
-          </button>
+          <div className="mt-4 flex justify-end">
+            <button
+              className="rounded-full bg-accent px-5 py-2 text-white"
+              onClick={addItem}
+            >
+              추가
+            </button>
+          </div>
           {status && <p className="mt-3 text-sm text-accent">{status}</p>}
         </div>
 
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">메뉴 목록</h2>
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-2 text-sm text-stone-600">
-              <input
-                type="checkbox"
-                checked={showHidden}
-                onChange={(e) => setShowHidden(e.target.checked)}
-              />
-              숨김 포함
-            </label>
+        <div className="flex flex-nowrap items-center gap-3">
+          <div className="flex items-center gap-6 border-b border-stone-200 text-base text-stone-500">
             <button
-              className={`flex h-9 w-9 items-center justify-center rounded-full border text-sm ${
-                viewMode === "list"
-                  ? "border-accent text-accent"
-                  : "border-stone-300 text-stone-500"
+              className={`-mb-px border-b-2 px-1 py-2 transition ${
+                menuTab === "list"
+                  ? "border-accent text-stone-900"
+                  : "border-transparent hover:border-stone-300 hover:text-stone-700"
               }`}
-              onClick={() => setViewMode("list")}
-              aria-label="리스트 보기"
-              title="리스트 보기"
+              onClick={() => setMenuTab("list")}
             >
-              <span className="sr-only">리스트 보기</span>≡
+              메뉴 목록
             </button>
             <button
-              className={`flex h-9 w-9 items-center justify-center rounded-full border text-sm ${
-                viewMode === "gallery"
-                  ? "border-accent text-accent"
-                  : "border-stone-300 text-stone-500"
+              className={`-mb-px border-b-2 px-1 py-2 transition ${
+                menuTab === "recipe"
+                  ? "border-accent text-stone-900"
+                  : "border-transparent hover:border-stone-300 hover:text-stone-700"
               }`}
-              onClick={() => setViewMode("gallery")}
-              aria-label="갤러리 보기"
-              title="갤러리 보기"
+              onClick={() => setMenuTab("recipe")}
             >
-              <span className="sr-only">갤러리 보기</span>▦
+              레시피
             </button>
+          </div>
+          <div className="ml-auto flex items-center gap-2 whitespace-nowrap">
+            {menuTab === "list" && (
+              <>
+                <label className="flex items-center gap-2 text-sm text-stone-600">
+                  <input
+                    type="checkbox"
+                    checked={showHidden}
+                    onChange={(e) => setShowHidden(e.target.checked)}
+                  />
+                  숨김 포함
+                </label>
+                <button
+                  className={`flex h-9 w-9 items-center justify-center rounded-full border text-sm ${
+                    viewMode === "list"
+                      ? "border-accent text-accent"
+                      : "border-stone-300 text-stone-500"
+                  }`}
+                  onClick={() => setViewMode("list")}
+                  aria-label="리스트 보기"
+                  title="리스트 보기"
+                >
+                  <span className="sr-only">리스트 보기</span>≡
+                </button>
+                <button
+                  className={`flex h-9 w-9 items-center justify-center rounded-full border text-sm ${
+                    viewMode === "gallery"
+                      ? "border-accent text-accent"
+                      : "border-stone-300 text-stone-500"
+                  }`}
+                  onClick={() => setViewMode("gallery")}
+                  aria-label="갤러리 보기"
+                  title="갤러리 보기"
+                >
+                  <span className="sr-only">갤러리 보기</span>▦
+                </button>
+              </>
+            )}
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {["전체", ...categories, "기타"]
             .filter((v, i, a) => a.indexOf(v) === i)
             .map((category) => (
               <button
                 key={category}
-                className={`rounded-full border px-4 py-2 text-sm ${
+                className={`rounded-full px-3 py-1.5 text-sm transition ${
                   activeCategory === category
-                    ? "border-accent bg-accent text-white"
-                    : "border-stone-300 text-stone-600"
+                    ? "bg-accent text-white"
+                    : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                 }`}
                 onClick={() => setActiveCategory(category)}
               >
@@ -237,7 +328,50 @@ export default function AdminMenuPage() {
             ))}
         </div>
 
-        {viewMode === "gallery" ? (
+        {menuTab === "recipe" ? (
+          <>
+            {recipeNotice && (
+              <p className="text-sm text-accent">{recipeNotice}</p>
+            )}
+            <div className="grid gap-4 md:grid-cols-2">
+              {menu
+                .filter((item) =>
+                  activeCategory === "전체"
+                    ? true
+                    : (item.category || "기타") === activeCategory,
+                )
+                .map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-2xl border border-stone-200 bg-white p-6"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-lg font-semibold">{item.name}</h3>
+                      <button
+                        className="rounded-full border border-stone-300 px-3 py-1 text-xs text-stone-600"
+                        onClick={() =>
+                          updateRecipe(item.id, recipeDrafts[item.id] || "")
+                        }
+                      >
+                        저장
+                      </button>
+                    </div>
+                    <textarea
+                      className="mt-3 min-h-[120px] w-full rounded-xl border border-stone-200 px-4 py-2"
+                      value={recipeDrafts[item.id] ?? ""}
+                      onChange={(e) =>
+                        setRecipeDrafts((prev) => ({
+                          ...prev,
+                          [item.id]: e.target.value,
+                        }))
+                      }
+                      placeholder="레시피를 입력하세요"
+                    />
+                  </div>
+                ))}
+            </div>
+          </>
+        ) : viewMode === "gallery" ? (
           <div className="grid gap-4 md:grid-cols-2">
             {menu
               .filter((item) =>

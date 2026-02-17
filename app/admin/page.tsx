@@ -1,7 +1,7 @@
 import AdminGate from "../components/AdminGate";
 import Link from "next/link";
 import OrdersRequested from "./requested-orders";
-import DailySales from "./daily-sales";
+import OrderEntry from "./order-entry";
 import OrderStats from "./order-stats";
 import MenuStats from "./menu-stats";
 
@@ -10,8 +10,8 @@ export default function AdminHome() {
     <AdminGate>
       <div className="grid gap-6">
         <div className="grid gap-6 md:grid-cols-2">
+          <OrderEntry />
           <OrdersRequested />
-          <DailySales />
         </div>
         <OrderStats />
         <MenuStats />

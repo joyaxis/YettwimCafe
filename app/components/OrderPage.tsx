@@ -776,9 +776,23 @@ export default function OrderPage() {
                         <span>총 결제 금액</span>
                         <span>{totals.total.toLocaleString("ko-KR")}</span>
                       </div>
+                      <div className="h-[2px]" />
+                      <div className="bg-clay px-4 py-3 text-center text-stone-600">
+                        계좌이체 : 카카오뱅크 3333311427151 (이주희)
+                        <button
+                          className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-stone-300 text-sm text-stone-600"
+                          aria-label="계좌번호 복사"
+                          title="계좌번호 복사하기"
+                          onClick={() =>
+                            navigator.clipboard.writeText("3333311427151")
+                          }
+                        >
+                          ⧉
+                        </button>
+                      </div>
                     </div>
                     <button
-                      className="mt-5 w-full rounded-full bg-accent px-4 py-3 text-white shadow-soft"
+                      className="mt-[20px] w-full rounded-full bg-accent px-4 py-3 text-white shadow-soft"
                       onClick={handleOrder}
                     >
                       주문 완료
