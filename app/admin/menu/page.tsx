@@ -89,7 +89,10 @@ export default function AdminMenuPage() {
     await load();
   };
 
-  const deleteItem = async (id: string) => {
+  const deleteItem = async (id: string, name: string) => {
+    if (!window.confirm(`선택한 "${name}" 을(를) 삭제하시겠습니까?`)) {
+      return;
+    }
     await supabase.from("menu_items").delete().eq("id", id);
     await load();
   };
@@ -121,41 +124,43 @@ export default function AdminMenuPage() {
                 value={draft.name}
                 onChange={(e) => setDraft({ ...draft, name: e.target.value })}
               />
-              <input
-                className="rounded-xl border border-stone-200 px-4 py-2"
-                type="number"
-                min="0"
-                placeholder="가격"
-                value={draft.price}
-                onChange={(e) =>
-                  setDraft({ ...draft, price: Number(e.target.value) })
-                }
-              />
-              <div className="flex flex-wrap items-center justify-end gap-4 text-sm text-stone-600">
-                <label className="flex items-center gap-2 text-red-600">
-                  <input
-                    type="checkbox"
-                    onChange={(e) =>
-                      setDraft((prev) => ({
-                        ...prev,
-                        is_hot: e.target.checked,
-                      }))
-                    }
-                  />
-                  HOT
-                </label>
-                <label className="flex items-center gap-2 text-blue-500">
-                  <input
-                    type="checkbox"
-                    onChange={(e) =>
-                      setDraft((prev) => ({
-                        ...prev,
-                        is_ice: e.target.checked,
-                      }))
-                    }
-                  />
-                  ICE
-                </label>
+              <div className="flex items-center gap-3 md:contents">
+                <input
+                  className="w-40 rounded-xl border border-stone-200 px-4 py-2 md:w-full"
+                  type="number"
+                  min="0"
+                  placeholder="가격"
+                  value={draft.price}
+                  onChange={(e) =>
+                    setDraft({ ...draft, price: Number(e.target.value) })
+                  }
+                />
+                <div className="flex flex-wrap items-center justify-start gap-4 text-sm text-stone-600 md:justify-end">
+                  <label className="flex items-center gap-2 text-red-600">
+                    <input
+                      type="checkbox"
+                      onChange={(e) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          is_hot: e.target.checked,
+                        }))
+                      }
+                    />
+                    HOT
+                  </label>
+                  <label className="flex items-center gap-2 text-blue-500">
+                    <input
+                      type="checkbox"
+                      onChange={(e) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          is_ice: e.target.checked,
+                        }))
+                      }
+                    />
+                    ICE
+                  </label>
+                </div>
               </div>
             </div>
             <input
@@ -249,10 +254,12 @@ export default function AdminMenuPage() {
                   <div className="mt-4 flex items-center justify-between">
                     <h3 className="text-lg font-semibold">{item.name}</h3>
                     <button
-                      className="rounded-full border border-red-300 px-3 py-1 text-xs text-red-600"
-                      onClick={() => deleteItem(item.id)}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-300 text-red-600"
+                      onClick={() => deleteItem(item.id, item.name)}
+                      aria-label="삭제"
+                      title="삭제"
                     >
-                      삭제
+                      ✕
                     </button>
                   </div>
                   <div className="mt-4 grid gap-6 md:grid-cols-2">
@@ -300,7 +307,9 @@ export default function AdminMenuPage() {
                         />
                       </div>
                       <div className="grid gap-2 md:items-center">
-                        <span className="text-sm text-stone-500 opacity-0">온도</span>
+                        <span className="text-sm text-stone-500 opacity-0">
+                          온도
+                        </span>
                         <div className="flex flex-wrap items-center gap-4 text-sm text-stone-600">
                           <label className="flex items-center gap-2 text-red-600">
                             <input
@@ -428,7 +437,11 @@ export default function AdminMenuPage() {
                                 type="checkbox"
                                 defaultChecked={item.is_hot}
                                 onChange={(e) =>
-                                  updateItem(item.id, "is_hot", e.target.checked)
+                                  updateItem(
+                                    item.id,
+                                    "is_hot",
+                                    e.target.checked,
+                                  )
                                 }
                               />
                               HOT
@@ -438,7 +451,11 @@ export default function AdminMenuPage() {
                                 type="checkbox"
                                 defaultChecked={item.is_ice}
                                 onChange={(e) =>
-                                  updateItem(item.id, "is_ice", e.target.checked)
+                                  updateItem(
+                                    item.id,
+                                    "is_ice",
+                                    e.target.checked,
+                                  )
                                 }
                               />
                               ICE
@@ -446,7 +463,7 @@ export default function AdminMenuPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-stone-600">
+                      <div className="hidden items-center gap-2 text-sm text-stone-600 md:flex md:justify-center">
                         <input
                           id={`hide-list-${item.id}`}
                           type="checkbox"
@@ -462,19 +479,59 @@ export default function AdminMenuPage() {
                           숨김
                         </label>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          className="rounded-full border border-stone-300 px-3 py-2 text-xs text-stone-600"
-                          onClick={() => setEditing(item)}
-                        >
-                          편집
-                        </button>
-                        <button
-                          className="rounded-full border border-red-300 px-3 py-2 text-xs text-red-600"
-                          onClick={() => deleteItem(item.id)}
-                        >
-                          삭제
-                        </button>
+                      <div className="flex items-center justify-between gap-3 md:justify-center">
+                        <div className="flex items-center gap-2 text-sm text-stone-600 md:hidden">
+                          <input
+                            id={`hide-list-mobile-${item.id}`}
+                            type="checkbox"
+                            defaultChecked={item.is_hidden}
+                            onChange={(e) =>
+                              updateItem(item.id, "is_hidden", e.target.checked)
+                            }
+                          />
+                          <label
+                            htmlFor={`hide-list-mobile-${item.id}`}
+                            className="cursor-pointer"
+                          >
+                            숨김
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-2 md:hidden">
+                          <button
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-stone-300 text-[11px] text-stone-600"
+                            onClick={() => setEditing(item)}
+                            aria-label="편집"
+                            title="편집"
+                          >
+                            ✎
+                          </button>
+                          <button
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-red-300 text-[11px] text-red-600"
+                            onClick={() => deleteItem(item.id, item.name)}
+                            aria-label="삭제"
+                            title="삭제"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <div className="hidden items-center justify-center gap-2 md:flex">
+                          <button
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-stone-300 text-base text-stone-600"
+                            onClick={() => setEditing(item)}
+                            aria-label="편집"
+                            title="편집"
+                          >
+                            ✎
+                          </button>
+                          <button
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-300 text-base text-red-600"
+                            onClick={() => deleteItem(item.id, item.name)}
+                            aria-label="삭제"
+                            title="삭제"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
