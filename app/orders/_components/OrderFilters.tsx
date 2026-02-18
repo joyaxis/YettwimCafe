@@ -18,10 +18,12 @@ export default function OrderFilters({
   onStatus: (value: "all" | Order["status"]) => void;
   onDateRange: (value: { from: string; to: string }) => void;
 }) {
-  const label = useMemo(() => {
-    if (!dateRange.from && !dateRange.to) return "";
-    return `${dateRange.from || "-"} ~ ${dateRange.to || "-"}`;
-  }, [dateRange]);
+  const dateError = useMemo(() => {
+    if (dateRange.from && dateRange.to && dateRange.from > dateRange.to) {
+      return "조회 시작일이 종료일보다 빠르거나 같아야 합니다.";
+    }
+    return "";
+  }, [dateRange.from, dateRange.to]);
 
   return (
     <div className="flex flex-wrap gap-3">
@@ -57,8 +59,8 @@ export default function OrderFilters({
           onChange={(e) => onDateRange({ ...dateRange, to: e.target.value })}
           className="border-none bg-transparent text-sm outline-none"
         />
-        <span className="ml-2 text-stone-500">{label}</span>
       </div>
+      {dateError && <p className="text-xs text-red-500">{dateError}</p>}
     </div>
   );
 }
