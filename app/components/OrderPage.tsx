@@ -408,23 +408,11 @@ export default function OrderPage() {
       },
       ...localOrders,
     ];
-    const orderCode = order.order_code || order.id;
-    const orderName =
-      items.length > 1
-        ? `${items[0]?.name ?? "카페 주문"} 외 ${items.length - 1}건`
-        : items[0]?.name ?? "카페 주문";
     setLocalOrders(nextOrders);
     saveLocalOrders(nextOrders);
     setCart({});
     setTempById({});
     setStatus("");
-    const params = new URLSearchParams({
-      orderId: orderCode,
-      amount: String(totals.total),
-      orderName,
-      customerName: storedName,
-    });
-    router.push(`/payments/ready?${params.toString()}`);
   };
 
   return (
