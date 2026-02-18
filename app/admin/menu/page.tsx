@@ -248,22 +248,22 @@ export default function AdminMenuPage() {
         </div>
 
         <div className="flex flex-nowrap items-center gap-3">
-          <div className="flex items-center gap-6 border-b border-stone-200 text-base text-stone-500">
+          <div className="flex w-full flex-wrap gap-4 border-b border-stone-200 text-sm">
             <button
-              className={`-mb-px border-b-2 px-1 py-2 transition ${
+              className={`border-b-2 pb-2 text-sm font-semibold transition ${
                 menuTab === "list"
-                  ? "border-accent text-stone-900"
-                  : "border-transparent hover:border-stone-300 hover:text-stone-700"
+                  ? "border-accent text-accent"
+                  : "border-transparent text-stone-500"
               }`}
               onClick={() => setMenuTab("list")}
             >
               메뉴 목록
             </button>
             <button
-              className={`-mb-px border-b-2 px-1 py-2 transition ${
+              className={`border-b-2 pb-2 text-sm font-semibold transition ${
                 menuTab === "recipe"
-                  ? "border-accent text-stone-900"
-                  : "border-transparent hover:border-stone-300 hover:text-stone-700"
+                  ? "border-accent text-accent"
+                  : "border-transparent text-stone-500"
               }`}
               onClick={() => setMenuTab("recipe")}
             >

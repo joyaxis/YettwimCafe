@@ -147,7 +147,7 @@ export default function OrderPage() {
         .from("orders")
         .select("id,order_code,status,total,created_at")
         .eq("customer_name", customerName)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: true });
       if (!active) return;
       const orders = (data as LocalOrder[]) || [];
       if (initialOrdersLoaded.current) {
@@ -413,6 +413,7 @@ export default function OrderPage() {
     setCart({});
     setTempById({});
     setStatus("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -523,7 +524,20 @@ export default function OrderPage() {
               {todayOrders.length === 0 ? (
                 <p className="text-stone-500">아직 주문 내역이 없습니다.</p>
               ) : (
-                todayOrders.map((order) => (
+                [...todayOrders]
+                  .sort((a, b) => {
+                    const rank = (status: LocalOrder["status"]) => {
+                      if (status === "완료") return 2;
+                      if (status === "주문취소") return 3;
+                      return 1;
+                    };
+                    const rankDiff = rank(a.status) - rank(b.status);
+                    if (rankDiff !== 0) return rankDiff;
+                    return (a.created_at || "").localeCompare(
+                      b.created_at || "",
+                    );
+                  })
+                  .map((order) => (
                   <div
                     key={order.id}
                     className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-clay px-4 py-3"

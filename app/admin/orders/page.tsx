@@ -28,6 +28,13 @@ export default function AdminOrdersPage() {
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
   const [nameQuery, setNameQuery] = useState("");
   const [dateError, setDateError] = useState("");
+  const [inProgressPage, setInProgressPage] = useState(1);
+  const [completedPage, setCompletedPage] = useState(1);
+  const [canceledPage, setCanceledPage] = useState(1);
+  const [activeTab, setActiveTab] = useState<
+    "inProgress" | "completed" | "canceled"
+  >("inProgress");
+  const PAGE_SIZE = 10;
   const isInDateRange = (createdAt?: string) => {
     if (!dateRange.from && !dateRange.to) return true;
     const date = createdAt?.slice(0, 10);
@@ -37,24 +44,72 @@ export default function AdminOrdersPage() {
       date <= (dateRange.to || "9999-12-31")
     );
   };
-  const inProgressOrders = orders.filter(
-    (order) =>
-      order.status !== "완료" &&
-      order.status !== "주문취소" &&
-      isInDateRange(order.created_at) &&
-      (!nameQuery ||
-        (order.customer_name || "")
-          .toLowerCase()
-          .includes(nameQuery.toLowerCase())),
+  const inProgressOrders = orders
+    .filter(
+      (order) =>
+        order.status !== "완료" &&
+        order.status !== "주문취소" &&
+        isInDateRange(order.created_at) &&
+        (!nameQuery ||
+          (order.customer_name || "")
+            .toLowerCase()
+            .includes(nameQuery.toLowerCase())),
+    )
+    .slice()
+    .sort(
+      (a, b) => (a.created_at || "").localeCompare(b.created_at || ""),
+    );
+  const completedOrders = orders
+    .filter(
+      (order) =>
+        order.status === "완료" &&
+        isInDateRange(order.created_at) &&
+        (!nameQuery ||
+          (order.customer_name || "")
+            .toLowerCase()
+            .includes(nameQuery.toLowerCase())),
+    )
+    .slice()
+    .sort(
+      (a, b) => (b.created_at || "").localeCompare(a.created_at || ""),
+    );
+  const canceledOrders = orders
+    .filter(
+      (order) =>
+        order.status === "주문취소" &&
+        isInDateRange(order.created_at) &&
+        (!nameQuery ||
+          (order.customer_name || "")
+            .toLowerCase()
+            .includes(nameQuery.toLowerCase())),
+    )
+    .slice()
+    .sort(
+      (a, b) => (b.created_at || "").localeCompare(a.created_at || ""),
+    );
+  const inProgressTotalPages = Math.max(
+    1,
+    Math.ceil(inProgressOrders.length / PAGE_SIZE),
   );
-  const completedOrders = orders.filter(
-    (order) =>
-      (order.status === "완료" || order.status === "주문취소") &&
-      isInDateRange(order.created_at) &&
-      (!nameQuery ||
-        (order.customer_name || "")
-          .toLowerCase()
-          .includes(nameQuery.toLowerCase())),
+  const completedTotalPages = Math.max(
+    1,
+    Math.ceil(completedOrders.length / PAGE_SIZE),
+  );
+  const canceledTotalPages = Math.max(
+    1,
+    Math.ceil(canceledOrders.length / PAGE_SIZE),
+  );
+  const pagedInProgressOrders = inProgressOrders.slice(
+    (inProgressPage - 1) * PAGE_SIZE,
+    inProgressPage * PAGE_SIZE,
+  );
+  const pagedCompletedOrders = completedOrders.slice(
+    (completedPage - 1) * PAGE_SIZE,
+    completedPage * PAGE_SIZE,
+  );
+  const pagedCanceledOrders = canceledOrders.slice(
+    (canceledPage - 1) * PAGE_SIZE,
+    canceledPage * PAGE_SIZE,
   );
 
   const load = async () => {
@@ -63,7 +118,7 @@ export default function AdminOrdersPage() {
       .select(
         "id,order_code,status,subtotal,discount,total,pickup_time,note,created_at,customer_name,order_items(id,order_id,menu_item_id,name,qty,price,status,recipe)",
       )
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: true });
     setOrders((data as OrderWithItems[]) || []);
   };
 
@@ -96,6 +151,12 @@ export default function AdminOrdersPage() {
       setDateError("");
     }
   }, [dateRange.from, dateRange.to]);
+
+  useEffect(() => {
+    setInProgressPage(1);
+    setCompletedPage(1);
+    setCanceledPage(1);
+  }, [dateRange.from, dateRange.to, nameQuery]);
 
   const updateOrderStatus = async (
     id: string,
@@ -267,179 +328,307 @@ export default function AdminOrdersPage() {
             )}
           </div>
         </div>
-        <div className="pt-2">
-          <h2 className="text-lg font-semibold">
-            진행 중 주문 ({inProgressOrders.length}건)
-          </h2>
-        </div>
-        {inProgressOrders.length === 0 ? (
-          <div className="rounded-2xl border border-stone-200 bg-white p-6">
-            <p>진행 중인 주문이 없습니다.</p>
-          </div>
-        ) : (
-          inProgressOrders.map((order) => (
-            <div
-              key={order.id}
-              className={`rounded-2xl border border-stone-200 p-6 ${
-                order.status === "완료" || order.status === "주문취소"
-                  ? "bg-stone-100"
-                  : "bg-white"
+        <div className="flex flex-wrap gap-4 border-b border-stone-200 text-sm">
+          {[
+            { key: "inProgress", label: `진행 중 (${inProgressOrders.length})` },
+            { key: "completed", label: `완료 (${completedOrders.length})` },
+            { key: "canceled", label: `취소 (${canceledOrders.length})` },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              className={`border-b-2 pb-2 text-sm font-semibold transition ${
+                activeTab === tab.key
+                  ? "border-accent text-accent"
+                  : "border-transparent text-stone-500"
               }`}
+              onClick={() =>
+                setActiveTab(
+                  tab.key as "inProgress" | "completed" | "canceled",
+                )
+              }
             >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-lg font-semibold">
-                      주문번호 {order.order_code || order.id}
-                    </h3>
-                    {(order.status === "완료" ||
-                      order.status === "주문취소") && (
-                      <button
-                        className="rounded-full border border-red-300 px-3 py-1 text-xs text-red-600"
-                        onClick={async () => {
-                          if (!confirm("삭제하시겠습니까?")) return;
-                          await supabase
-                            .from("orders")
-                            .delete()
-                            .eq("id", order.id);
-                          window.location.reload();
-                          await load();
-                        }}
-                      >
-                        주문 삭제
-                      </button>
-                    )}
-                  </div>
-                  <p className="text-sm text-stone-500">
-                    {order.customer_name
-                      ? `주문자 ${order.customer_name} · `
-                      : ""}
-                    총 결제 {Number(order.total).toLocaleString("ko-KR")} · 주문
-                    일시{" "}
-                    {order.created_at
-                      ? new Date(order.created_at)
-                          .toLocaleString("sv-SE")
-                          .replace(" ", " ")
-                      : "-"}
-                  </p>
-                </div>
-                <select
-                  className="rounded-xl border border-stone-200 px-3 py-2"
-                  value={order.status}
-                  onChange={(e) =>
-                    updateOrderStatus(
-                      order.id,
-                      e.target.value as Order["status"],
-                      order.status,
-                    )
-                  }
-                >
-                  {ORDER_STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-              <OrderItemsPanel
-                items={order.order_items || []}
-                orderId={order.id}
-                defaultOpen={
-                  order.status !== "완료" && order.status !== "주문취소"
-                }
-                onUpdate={updateItemStatus}
+        {activeTab === "inProgress" && (
+          <>
+            {inProgressOrders.length === 0 ? (
+              <div className="rounded-2xl border border-stone-200 bg-white p-6">
+                <p>진행 중인 주문이 없습니다.</p>
+              </div>
+            ) : (
+              pagedInProgressOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className={`rounded-2xl border border-stone-200 p-6 ${
+                    order.status === "완료" || order.status === "주문취소"
+                      ? "bg-stone-100"
+                      : "bg-white"
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-lg font-semibold">
+                          주문번호 {order.order_code || order.id}
+                        </h3>
+                        {(order.status === "완료" ||
+                          order.status === "주문취소") && (
+                          <button
+                            className="rounded-full border border-red-300 px-3 py-1 text-xs text-red-600"
+                            onClick={async () => {
+                              if (!confirm("삭제하시겠습니까?")) return;
+                              await supabase
+                                .from("orders")
+                                .delete()
+                                .eq("id", order.id);
+                              window.location.reload();
+                              await load();
+                            }}
+                          >
+                            주문 삭제
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-sm text-stone-500">
+                        {order.customer_name
+                          ? `주문자 ${order.customer_name} · `
+                          : ""}
+                        총 결제 {Number(order.total).toLocaleString("ko-KR")} ·
+                        주문 일시{" "}
+                        {order.created_at
+                          ? new Date(order.created_at)
+                              .toLocaleString("sv-SE")
+                              .replace(" ", " ")
+                          : "-"}
+                      </p>
+                    </div>
+                    <select
+                      className="rounded-xl border border-stone-200 px-3 py-2"
+                      value={order.status}
+                      onChange={(e) =>
+                        updateOrderStatus(
+                          order.id,
+                          e.target.value as Order["status"],
+                          order.status,
+                        )
+                      }
+                    >
+                      {ORDER_STATUSES.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <OrderItemsPanel
+                    items={order.order_items || []}
+                    orderId={order.id}
+                    defaultOpen={
+                      order.status !== "완료" && order.status !== "주문취소"
+                    }
+                    onUpdate={updateItemStatus}
+                  />
+                </div>
+              ))
+            )}
+            {inProgressOrders.length > PAGE_SIZE && (
+              <Pagination
+                current={inProgressPage}
+                total={inProgressTotalPages}
+                onChange={setInProgressPage}
               />
-            </div>
-          ))
+            )}
+          </>
         )}
 
-        <div className="pt-2">
-          <h2 className="text-lg font-semibold">
-            완료/취소 주문 ({completedOrders.length}건)
-          </h2>
-        </div>
-
-        {completedOrders.length === 0 ? (
-          <div className="rounded-2xl border border-stone-200 bg-white p-6">
-            <p>주문 내역이 없습니다.</p>
-          </div>
-        ) : (
-          completedOrders.map((order) => (
-            <div
-              key={order.id}
-              className={`rounded-2xl border border-stone-200 p-6 ${
-                order.status === "완료" || order.status === "주문취소"
-                  ? "bg-stone-100"
-                  : "bg-white"
-              }`}
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-lg font-semibold">
-                      주문번호 {order.order_code || order.id}
-                    </h3>
-                    {(order.status === "완료" ||
-                      order.status === "주문취소") && (
-                      <button
-                        className="rounded-full border border-red-300 px-3 py-1 text-xs text-red-600"
-                        onClick={async () => {
-                          if (!confirm("삭제하시겠습니까?")) return;
-                          await supabase
-                            .from("orders")
-                            .delete()
-                            .eq("id", order.id);
-                          window.location.reload();
-                          await load();
-                        }}
-                      >
-                        주문 삭제
-                      </button>
-                    )}
-                  </div>
-                  <p className="text-sm text-stone-500">
-                    {order.customer_name
-                      ? `주문자 ${order.customer_name} · `
-                      : ""}
-                    총 결제 {Number(order.total).toLocaleString("ko-KR")} · 주문
-                    일시{" "}
-                    {order.created_at
-                      ? new Date(order.created_at)
-                          .toLocaleString("sv-SE")
-                          .replace(" ", " ")
-                      : "-"}
-                  </p>
-                </div>
-                <select
-                  className="rounded-xl border border-stone-200 px-3 py-2"
-                  value={order.status}
-                  onChange={(e) =>
-                    updateOrderStatus(
-                      order.id,
-                      e.target.value as Order["status"],
-                      order.status,
-                    )
-                  }
-                >
-                  {ORDER_STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
+        {activeTab === "completed" && (
+          <>
+            {completedOrders.length === 0 ? (
+              <div className="rounded-2xl border border-stone-200 bg-white p-6">
+                <p>주문 내역이 없습니다.</p>
               </div>
+            ) : (
+              pagedCompletedOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className={`rounded-2xl border border-stone-200 p-6 ${
+                    order.status === "완료" || order.status === "주문취소"
+                      ? "bg-stone-100"
+                      : "bg-white"
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-lg font-semibold">
+                          주문번호 {order.order_code || order.id}
+                        </h3>
+                        {(order.status === "완료" ||
+                          order.status === "주문취소") && (
+                          <button
+                            className="rounded-full border border-red-300 px-3 py-1 text-xs text-red-600"
+                            onClick={async () => {
+                              if (!confirm("삭제하시겠습니까?")) return;
+                              await supabase
+                                .from("orders")
+                                .delete()
+                                .eq("id", order.id);
+                              window.location.reload();
+                              await load();
+                            }}
+                          >
+                            주문 삭제
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-sm text-stone-500">
+                        {order.customer_name
+                          ? `주문자 ${order.customer_name} · `
+                          : ""}
+                        총 결제 {Number(order.total).toLocaleString("ko-KR")} ·
+                        주문 일시{" "}
+                        {order.created_at
+                          ? new Date(order.created_at)
+                              .toLocaleString("sv-SE")
+                              .replace(" ", " ")
+                          : "-"}
+                      </p>
+                    </div>
+                    <select
+                      className="rounded-xl border border-stone-200 px-3 py-2"
+                      value={order.status}
+                      onChange={(e) =>
+                        updateOrderStatus(
+                          order.id,
+                          e.target.value as Order["status"],
+                          order.status,
+                        )
+                      }
+                    >
+                      {ORDER_STATUSES.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <OrderItemsPanel
-                items={order.order_items || []}
-                orderId={order.id}
-                defaultOpen={
-                  order.status !== "완료" && order.status !== "주문취소"
-                }
-                onUpdate={updateItemStatus}
+                  <OrderItemsPanel
+                    items={order.order_items || []}
+                    orderId={order.id}
+                    defaultOpen={
+                      order.status !== "완료" && order.status !== "주문취소"
+                    }
+                    onUpdate={updateItemStatus}
+                  />
+                </div>
+              ))
+            )}
+            {completedOrders.length > PAGE_SIZE && (
+              <Pagination
+                current={completedPage}
+                total={completedTotalPages}
+                onChange={setCompletedPage}
               />
-            </div>
-          ))
+            )}
+          </>
+        )}
+
+        {activeTab === "canceled" && (
+          <>
+            {canceledOrders.length === 0 ? (
+              <div className="rounded-2xl border border-stone-200 bg-white p-6">
+                <p>주문 내역이 없습니다.</p>
+              </div>
+            ) : (
+              pagedCanceledOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className={`rounded-2xl border border-stone-200 p-6 ${
+                    order.status === "완료" || order.status === "주문취소"
+                      ? "bg-stone-100"
+                      : "bg-white"
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-lg font-semibold">
+                          주문번호 {order.order_code || order.id}
+                        </h3>
+                        {(order.status === "완료" ||
+                          order.status === "주문취소") && (
+                          <button
+                            className="rounded-full border border-red-300 px-3 py-1 text-xs text-red-600"
+                            onClick={async () => {
+                              if (!confirm("삭제하시겠습니까?")) return;
+                              await supabase
+                                .from("orders")
+                                .delete()
+                                .eq("id", order.id);
+                              window.location.reload();
+                              await load();
+                            }}
+                          >
+                            주문 삭제
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-sm text-stone-500">
+                        {order.customer_name
+                          ? `주문자 ${order.customer_name} · `
+                          : ""}
+                        총 결제 {Number(order.total).toLocaleString("ko-KR")} ·
+                        주문 일시{" "}
+                        {order.created_at
+                          ? new Date(order.created_at)
+                              .toLocaleString("sv-SE")
+                              .replace(" ", " ")
+                          : "-"}
+                      </p>
+                    </div>
+                    <select
+                      className="rounded-xl border border-stone-200 px-3 py-2"
+                      value={order.status}
+                      onChange={(e) =>
+                        updateOrderStatus(
+                          order.id,
+                          e.target.value as Order["status"],
+                          order.status,
+                        )
+                      }
+                    >
+                      {ORDER_STATUSES.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <OrderItemsPanel
+                    items={order.order_items || []}
+                    orderId={order.id}
+                    defaultOpen={
+                      order.status !== "완료" && order.status !== "주문취소"
+                    }
+                    onUpdate={updateItemStatus}
+                  />
+                </div>
+              ))
+            )}
+            {canceledOrders.length > PAGE_SIZE && (
+              <Pagination
+                current={canceledPage}
+                total={canceledTotalPages}
+                onChange={setCanceledPage}
+              />
+            )}
+          </>
         )}
 
       </div>
@@ -515,6 +704,40 @@ function OrderTimelineAdmin({
           />
         </div>
       )}
+    </div>
+  );
+}
+
+function Pagination({
+  current,
+  total,
+  onChange,
+}: {
+  current: number;
+  total: number;
+  onChange: (page: number) => void;
+}) {
+  const canPrev = current > 1;
+  const canNext = current < total;
+  return (
+    <div className="mt-4 flex items-center justify-center gap-3">
+      <button
+        className="rounded-full border border-stone-300 px-3 py-1 text-xs text-stone-600 disabled:opacity-40"
+        onClick={() => onChange(current - 1)}
+        disabled={!canPrev}
+      >
+        이전
+      </button>
+      <span className="text-xs text-stone-500">
+        {current} / {total}
+      </span>
+      <button
+        className="rounded-full border border-stone-300 px-3 py-1 text-xs text-stone-600 disabled:opacity-40"
+        onClick={() => onChange(current + 1)}
+        disabled={!canNext}
+      >
+        다음
+      </button>
     </div>
   );
 }

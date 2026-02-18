@@ -14,8 +14,10 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [toasts, setToasts] = useState<{ id: string; message: string; tone?: "default" | "success" | "warning" }[]>([]);
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | Order["status"]>("all");
+  const [activeTab, setActiveTab] = useState<"inProgress" | "completed" | "canceled">("inProgress");
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
   const router = useRouter();
   const lastStatuses = useRef<Record<string, Order["status"]>>({});
   const initialLoaded = useRef(false);
@@ -108,15 +110,60 @@ export default function OrdersPage() {
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
-      const matchesStatus = statusFilter === "all" || order.status === statusFilter;
       const code = (order.order_code || order.id).toLowerCase();
       const matchesQuery = query ? code.includes(query.toLowerCase()) : true;
       const orderDate = order.created_at?.slice(0, 10);
       const afterFrom = dateRange.from ? orderDate >= dateRange.from : true;
       const beforeTo = dateRange.to ? orderDate <= dateRange.to : true;
-      return matchesStatus && matchesQuery && afterFrom && beforeTo;
+      return matchesQuery && afterFrom && beforeTo;
     });
-  }, [orders, query, statusFilter, dateRange]);
+  }, [orders, query, dateRange]);
+
+  const inProgressOrders = useMemo(() => {
+    return filteredOrders
+      .filter(
+        (order) => order.status !== "완료" && order.status !== "주문취소",
+      )
+      .slice()
+      .sort(
+        (a, b) =>
+          (a.created_at || "").localeCompare(b.created_at || ""),
+      );
+  }, [filteredOrders]);
+  const completedOrders = useMemo(() => {
+    return filteredOrders
+      .filter((order) => order.status === "완료")
+      .slice()
+      .sort(
+        (a, b) =>
+          (b.created_at || "").localeCompare(a.created_at || ""),
+      );
+  }, [filteredOrders]);
+  const canceledOrders = useMemo(() => {
+    return filteredOrders
+      .filter((order) => order.status === "주문취소")
+      .slice()
+      .sort(
+        (a, b) =>
+          (b.created_at || "").localeCompare(a.created_at || ""),
+      );
+  }, [filteredOrders]);
+
+  const activeOrders =
+    activeTab === "completed"
+      ? completedOrders
+      : activeTab === "canceled"
+        ? canceledOrders
+        : inProgressOrders;
+  const totalPages = Math.max(1, Math.ceil(activeOrders.length / PAGE_SIZE));
+  const pagedOrders = activeOrders.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeTab, query, dateRange.from, dateRange.to]);
 
   return (
     <main className="flex w-full flex-col gap-6 pb-10">
@@ -136,18 +183,38 @@ export default function OrdersPage() {
 
       <OrderFilters
         query={query}
-        statusFilter={statusFilter}
         dateRange={dateRange}
         onQuery={setQuery}
-        onStatus={setStatusFilter}
         onDateRange={setDateRange}
       />
 
+      <div className="flex flex-wrap gap-4 border-b border-stone-200 text-sm">
+        {[
+          { key: "inProgress", label: `진행 중 (${inProgressOrders.length})` },
+          { key: "completed", label: `완료 (${completedOrders.length})` },
+          { key: "canceled", label: `취소 (${canceledOrders.length})` },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            className={`border-b-2 pb-2 text-sm font-semibold transition ${
+              activeTab === tab.key
+                ? "border-accent text-accent"
+                : "border-transparent text-stone-500"
+            }`}
+            onClick={() =>
+              setActiveTab(tab.key as "inProgress" | "completed" | "canceled")
+            }
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       <div className="space-y-3">
-        {filteredOrders.length === 0 ? (
+        {pagedOrders.length === 0 ? (
           <p className="rounded-2xl border border-stone-200 bg-white p-6">주문 내역이 없습니다.</p>
         ) : (
-          filteredOrders.map((order) => (
+          pagedOrders.map((order) => (
             <Link
               key={order.id}
               href={`/orders/${order.id}`}
@@ -166,6 +233,9 @@ export default function OrdersPage() {
           ))
         )}
       </div>
+      {activeOrders.length > PAGE_SIZE && (
+        <Pagination current={page} total={totalPages} onChange={setPage} />
+      )}
       <Toast
         items={toasts}
         onRemove={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))}
@@ -187,4 +257,38 @@ function StatusBadge({ status }: { status: Order["status"] }) {
     return <span className={`${base} bg-rose-100 text-rose-700`}>{status}</span>;
   }
   return <span className={`${base} bg-slate-100 text-slate-700`}>{status}</span>;
+}
+
+function Pagination({
+  current,
+  total,
+  onChange,
+}: {
+  current: number;
+  total: number;
+  onChange: (page: number) => void;
+}) {
+  const canPrev = current > 1;
+  const canNext = current < total;
+  return (
+    <div className="mt-4 flex items-center justify-center gap-3">
+      <button
+        className="rounded-full border border-stone-300 px-3 py-1 text-xs text-stone-600 disabled:opacity-40"
+        onClick={() => onChange(current - 1)}
+        disabled={!canPrev}
+      >
+        이전
+      </button>
+      <span className="text-xs text-stone-500">
+        {current} / {total}
+      </span>
+      <button
+        className="rounded-full border border-stone-300 px-3 py-1 text-xs text-stone-600 disabled:opacity-40"
+        onClick={() => onChange(current + 1)}
+        disabled={!canNext}
+      >
+        다음
+      </button>
+    </div>
+  );
 }

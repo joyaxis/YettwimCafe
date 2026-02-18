@@ -16,7 +16,7 @@ export default function OrdersRequested() {
         .from("orders")
         .select("id,order_code,status,total,created_at,customer_name")
         .not("status", "in", "(완료,주문취소)")
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: true })
         .limit(5);
       const { count } = await supabase
         .from("orders")
