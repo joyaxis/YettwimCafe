@@ -32,8 +32,6 @@ export default function CustomerLoginPage() {
         hour: "2-digit",
         minute: "2-digit",
       });
-      localStorage.setItem(CUSTOMER_NAME_KEY, trimmed);
-      localStorage.setItem(CUSTOMER_LOGIN_TIME_KEY, time);
       const { data, error } = await supabase
         .from("yettwim_member")
         .select("id,role")
@@ -47,6 +45,8 @@ export default function CustomerLoginPage() {
         setMessage("등록되지 않은 성도입니다. 관리자에게 문의해주세요.");
         return;
       }
+      localStorage.setItem(CUSTOMER_NAME_KEY, trimmed);
+      localStorage.setItem(CUSTOMER_LOGIN_TIME_KEY, time);
       if (data[0]?.role === "admin" || data[0]?.role === "step") {
         router.replace("/admin");
         return;
