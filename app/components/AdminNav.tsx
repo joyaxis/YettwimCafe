@@ -9,9 +9,11 @@ import { isAdminUser } from "../../lib/admin";
 export default function AdminNav({
   showTop = true,
   showMenu = true,
+  showHome = true,
 }: {
   showTop?: boolean;
   showMenu?: boolean;
+  showHome?: boolean;
 }) {
   const [message, setMessage] = useState<string | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -61,21 +63,24 @@ export default function AdminNav({
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex w-full flex-col gap-2">
       {showTop && (
-        <div className="flex w-full justify-end gap-2 text-[11px] text-white/70">
+        <div
+          className={`flex w-full items-center text-[11px] text-white/70 ${
+            showHome ? "justify-between" : "justify-end"
+          }`}
+        >
+          {showHome && (
+            <Link className="transition hover:text-white" href="/">
+              홈
+            </Link>
+          )}
           <button
             className="transition hover:text-white"
             onClick={handleAuthClick}
           >
             {loggedIn ? "관리자 로그아웃" : "관리자 로그인"}
           </button>
-          <Link
-            className="transition hover:text-white"
-            href="/"
-          >
-            홈
-          </Link>
         </div>
       )}
       {showMenu && loggedIn && pathname !== "/admin/login" && (

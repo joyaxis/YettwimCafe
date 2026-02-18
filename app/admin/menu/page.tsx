@@ -545,7 +545,7 @@ export default function AdminMenuPage() {
                           메뉴명
                         </span>
                         <input
-                          className="rounded-lg border border-stone-200 px-3 py-2 text-sm"
+                          className="rounded-lg border border-stone-200 px-3 py-2 text-base md:text-sm"
                           defaultValue={item.name}
                           onBlur={(e) =>
                             updateItem(item.id, "name", e.target.value)

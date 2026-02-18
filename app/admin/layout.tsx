@@ -6,8 +6,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="flex w-full flex-col gap-6 pb-10">
       <header className="bg-accent text-white">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-6 py-5">
-          <div className="flex w-full justify-end">
-            <AdminNav showMenu={false} />
+          <div className="flex w-full">
+            <AdminNav showMenu={false} showHome={true} />
           </div>
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
