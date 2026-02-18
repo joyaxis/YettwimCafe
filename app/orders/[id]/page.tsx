@@ -64,7 +64,7 @@ export default function OrderDetailPage() {
 
       const { data: itemData } = await supabase
         .from("order_items")
-        .select("id,order_id,menu_item_id,name,qty,price,status,recipe")
+        .select("id,order_id,menu_item_id,name,qty,price,status")
         .eq("order_id", orderId);
 
       if (!active) return;
@@ -217,11 +217,6 @@ export default function OrderDetailPage() {
                 </div>
                 <StatusBadge status={item.status} />
               </div>
-              {item.recipe && (
-                <p className="mt-2 text-sm text-stone-500">
-                  레시피: {item.recipe}
-                </p>
-              )}
             </div>
           ))}
         </div>
