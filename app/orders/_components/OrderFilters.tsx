@@ -19,7 +19,7 @@ export default function OrderFilters({
   onDateRange: (value: { from: string; to: string }) => void;
 }) {
   const label = useMemo(() => {
-    if (!dateRange.from && !dateRange.to) return "전체 기간";
+    if (!dateRange.from && !dateRange.to) return "";
     return `${dateRange.from || "-"} ~ ${dateRange.to || "-"}`;
   }, [dateRange]);
 
