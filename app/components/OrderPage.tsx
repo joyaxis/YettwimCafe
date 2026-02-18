@@ -67,6 +67,7 @@ export default function OrderPage() {
   const [installPrompt, setInstallPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [showIosInstall, setShowIosInstall] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
   const [loginTime, setLoginTime] = useState<string>("");
   const router = useRouter();
   const { todayOrders, todayLabel } = useMemo(() => {
@@ -106,8 +107,26 @@ export default function OrderPage() {
       setInstallPrompt(event as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", handler);
+    const updateStandalone = () => {
+      const standalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as { standalone?: boolean }).standalone === true;
+      setIsStandalone(standalone);
+    };
+    updateStandalone();
+    const media = window.matchMedia("(display-mode: standalone)");
+    if (media.addEventListener) {
+      media.addEventListener("change", updateStandalone);
+    } else {
+      media.addListener(updateStandalone);
+    }
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
+      if (media.removeEventListener) {
+        media.removeEventListener("change", updateStandalone);
+      } else {
+        media.removeListener(updateStandalone);
+      }
     };
   }, []);
 
@@ -400,33 +419,30 @@ export default function OrderPage() {
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10">
       <PwaClient />
       <div className="flex items-center justify-between -mt-6 text-xs text-stone-500">
-        <button
-          className="text-accent underline"
-          onClick={async () => {
-            const isStandalone =
-              window.matchMedia("(display-mode: standalone)").matches ||
-              (window.navigator as { standalone?: boolean }).standalone ===
-                true;
-            if (isStandalone) return;
-            if (installPrompt) {
-              await installPrompt.prompt();
-              setInstallPrompt(null);
-              return;
-            }
-            const ua = navigator.userAgent.toLowerCase();
-            if (
-              ua.includes("iphone") ||
-              ua.includes("ipad") ||
-              ua.includes("ipod")
-            ) {
-              setShowIosInstall(true);
-              return;
-            }
-            alert("브라우저 메뉴에서 '홈 화면에 추가'를 선택하세요.");
-          }}
-        >
-          홈 화면에 추가
-        </button>
+        {!isStandalone && (
+          <button
+            className="text-accent underline"
+            onClick={async () => {
+              if (installPrompt) {
+                await installPrompt.prompt();
+                setInstallPrompt(null);
+                return;
+              }
+              const ua = navigator.userAgent.toLowerCase();
+              if (
+                ua.includes("iphone") ||
+                ua.includes("ipad") ||
+                ua.includes("ipod")
+              ) {
+                setShowIosInstall(true);
+                return;
+              }
+              alert("브라우저 메뉴에서 '홈 화면에 추가'를 선택하세요.");
+            }}
+          >
+            홈 화면에 추가
+          </button>
+        )}
         <div className="flex items-center">
           {customerName && <span>{customerName}님 반갑습니다</span>}
           <span className="mx-2">|</span>
