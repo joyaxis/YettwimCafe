@@ -17,6 +17,11 @@ type LocalOrder = {
   created_at: string;
 };
 
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+};
+
 const LOCAL_ORDER_KEY = "cafe_local_orders_v1";
 const CUSTOMER_NAME_KEY = "cafe_customer_name_v1";
 const CUSTOMER_LOGIN_TIME_KEY = "cafe_customer_login_time_v1";
@@ -59,6 +64,9 @@ export default function OrderPage() {
   const [myOrdersOpen, setMyOrdersOpen] = useState(true);
   const [customerName, setCustomerName] = useState<string>("");
   const [copyNotice, setCopyNotice] = useState<string>("");
+  const [installPrompt, setInstallPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
+  const [showIosInstall, setShowIosInstall] = useState(false);
   const [loginTime, setLoginTime] = useState<string>("");
   const router = useRouter();
   const { todayOrders, todayLabel } = useMemo(() => {
@@ -91,6 +99,17 @@ export default function OrderPage() {
     setCustomerName(storedName);
     setLoginTime(storedTime);
   }, [router]);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -380,22 +399,51 @@ export default function OrderPage() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10">
       <PwaClient />
-      <div className="flex justify-end -mt-6 text-xs text-stone-500">
-        {customerName && <span>{customerName}님 반갑습니다</span>}
-        <span className="mx-2">|</span>
+      <div className="flex items-center justify-between -mt-6 text-xs text-stone-500">
         <button
-          className="underline"
+          className="text-accent underline"
           onClick={async () => {
-            localStorage.removeItem(CUSTOMER_NAME_KEY);
-            localStorage.removeItem(CUSTOMER_LOGIN_TIME_KEY);
-            setCustomerName("");
-            setLoginTime("");
-            await supabase.auth.signOut();
-            router.replace("/customer/login");
+            const isStandalone =
+              window.matchMedia("(display-mode: standalone)").matches ||
+              (window.navigator as { standalone?: boolean }).standalone ===
+                true;
+            if (isStandalone) return;
+            if (installPrompt) {
+              await installPrompt.prompt();
+              setInstallPrompt(null);
+              return;
+            }
+            const ua = navigator.userAgent.toLowerCase();
+            if (
+              ua.includes("iphone") ||
+              ua.includes("ipad") ||
+              ua.includes("ipod")
+            ) {
+              setShowIosInstall(true);
+              return;
+            }
+            alert("브라우저 메뉴에서 '홈 화면에 추가'를 선택하세요.");
           }}
         >
-          로그아웃
+          홈 화면에 추가
         </button>
+        <div className="flex items-center">
+          {customerName && <span>{customerName}님 반갑습니다</span>}
+          <span className="mx-2">|</span>
+          <button
+            className="underline"
+            onClick={async () => {
+              localStorage.removeItem(CUSTOMER_NAME_KEY);
+              localStorage.removeItem(CUSTOMER_LOGIN_TIME_KEY);
+              setCustomerName("");
+              setLoginTime("");
+              await supabase.auth.signOut();
+              router.replace("/customer/login");
+            }}
+          >
+            로그아웃
+          </button>
+        </div>
       </div>
       <header className="grid gap-6 rounded-3xl bg-clay p-6 md:grid-cols-[1.2fr_0.8fr]">
         <div>
@@ -819,6 +867,27 @@ export default function OrderPage() {
         items={toasts}
         onRemove={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))}
       />
+      {showIosInstall && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-soft">
+            <h3 className="text-lg font-semibold">iOS에서 홈 화면에 추가</h3>
+            <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-stone-600">
+              <li>하단의 “⋯” 버튼(더보기)을 누르세요.</li>
+              <li>목록에서 “공유”를 선택하세요.</li>
+              <li>공유 메뉴에서 “홈 화면에 추가”를 선택하세요.</li>
+              <li>이름을 확인한 뒤 “추가”를 누르세요.</li>
+            </ol>
+            <div className="mt-4 flex justify-end">
+              <button
+                className="rounded-full border border-stone-300 px-4 py-2 text-sm text-stone-600"
+                onClick={() => setShowIosInstall(false)}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex justify-end">
         <a className="text-xs text-stone-500 underline" href="/admin">
           관리자 페이지

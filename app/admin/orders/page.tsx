@@ -27,6 +27,7 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
   const [nameQuery, setNameQuery] = useState("");
+  const [dateError, setDateError] = useState("");
   const isInDateRange = (createdAt?: string) => {
     if (!dateRange.from && !dateRange.to) return true;
     const date = createdAt?.slice(0, 10);
@@ -87,6 +88,14 @@ export default function AdminOrdersPage() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  useEffect(() => {
+    if (dateRange.from && dateRange.to && dateRange.from > dateRange.to) {
+      setDateError("조회 시작일이 종료일보다 빠르거나 같아야 합니다.");
+    } else {
+      setDateError("");
+    }
+  }, [dateRange.from, dateRange.to]);
 
   const updateOrderStatus = async (
     id: string,
@@ -161,67 +170,100 @@ export default function AdminOrdersPage() {
   return (
     <AdminGate>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-stone-200 bg-white p-4">
-          <span className="text-sm text-stone-500">날짜 필터</span>
-          <div className="relative">
-            <input
-              type="date"
-              value={dateRange.from}
-              onChange={(e) =>
-                setDateRange({ ...dateRange, from: e.target.value })
-              }
-              className="rounded-full border border-stone-200 px-3 py-2 pr-8 text-sm"
-            />
-            {dateRange.from && (
-              <button
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400"
-                onClick={() => setDateRange({ ...dateRange, from: "" })}
-                aria-label="시작일 지우기"
-                title="지우기"
-              >
-                ✕
-              </button>
+        <div className="bg-white md:flex md:justify-end">
+          <div className="grid gap-2 md:hidden">
+            <span className="text-sm text-stone-500">조회 날짜</span>
+            <div className="flex items-center gap-2 px-2">
+              <div className="relative">
+                <input
+                  type="date"
+                  value={dateRange.from}
+                  onChange={(e) =>
+                    setDateRange({ ...dateRange, from: e.target.value })
+                  }
+                  className="w-[140px] rounded-full border border-stone-200 px-2 py-1 pr-3 text-xs"
+                />
+              </div>
+              <span className="text-stone-400">~</span>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={dateRange.to}
+                  onChange={(e) =>
+                    setDateRange({ ...dateRange, to: e.target.value })
+                  }
+                  className="w-[140px] rounded-full border border-stone-200 px-2 py-1 pr-3 text-xs"
+                />
+              </div>
+            </div>
+            <span className="text-sm text-stone-500">주문자명</span>
+            <div className="relative w-full px-2">
+              <input
+                type="text"
+                placeholder="주문자명 검색"
+                value={nameQuery}
+                onChange={(e) => setNameQuery(e.target.value)}
+                className="w-full border-b border-stone-300 bg-transparent px-1 py-2 pr-8 text-sm focus:border-stone-500 focus:outline-none"
+              />
+              {nameQuery && (
+                <button
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400"
+                  onClick={() => setNameQuery("")}
+                  aria-label="검색어 지우기"
+                  title="지우기"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            {dateError && (
+              <p className="px-2 text-xs text-red-500">{dateError}</p>
             )}
           </div>
-          <span className="text-stone-400">~</span>
-          <div className="relative">
-            <input
-              type="date"
-              value={dateRange.to}
-              onChange={(e) =>
-                setDateRange({ ...dateRange, to: e.target.value })
-              }
-              className="rounded-full border border-stone-200 px-3 py-2 pr-8 text-sm"
-            />
-            {dateRange.to && (
-              <button
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400"
-                onClick={() => setDateRange({ ...dateRange, to: "" })}
-                aria-label="종료일 지우기"
-                title="지우기"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-          <span className="text-stone-400">|</span>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="주문자명 검색"
-              value={nameQuery}
-              onChange={(e) => setNameQuery(e.target.value)}
-              className="rounded-full border border-stone-200 px-3 py-2 pr-8 text-sm"
-            />
-            {nameQuery && (
-              <button
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400"
-                onClick={() => setNameQuery("")}
-                aria-label="검색어 지우기"
-                title="지우기"
-              >
-                ✕
-              </button>
+          <div className="hidden items-center justify-end gap-3 md:flex md:flex-wrap">
+            <span className="text-sm text-stone-500">조회 날짜</span>
+            <div className="relative">
+              <input
+                type="date"
+                value={dateRange.from}
+                onChange={(e) =>
+                  setDateRange({ ...dateRange, from: e.target.value })
+                }
+                className="rounded-full border border-stone-200 px-3 py-2 pr-3 text-sm"
+              />
+            </div>
+            <span className="text-stone-400">~</span>
+            <div className="relative">
+              <input
+                type="date"
+                value={dateRange.to}
+                onChange={(e) =>
+                  setDateRange({ ...dateRange, to: e.target.value })
+                }
+                className="rounded-full border border-stone-200 px-3 py-2 pr-3 text-sm"
+              />
+            </div>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="주문자명 검색"
+                value={nameQuery}
+                onChange={(e) => setNameQuery(e.target.value)}
+                className="border-b border-stone-300 bg-transparent px-1 py-2 pr-8 text-sm focus:border-stone-500 focus:outline-none"
+              />
+              {nameQuery && (
+                <button
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400"
+                  onClick={() => setNameQuery("")}
+                  aria-label="검색어 지우기"
+                  title="지우기"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            {dateError && (
+              <p className="text-xs text-red-500">{dateError}</p>
             )}
           </div>
         </div>

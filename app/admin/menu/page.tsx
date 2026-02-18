@@ -128,7 +128,7 @@ export default function AdminMenuPage() {
   return (
     <AdminGate>
       <div className="space-y-6">
-        <div className="rounded-2xl border border-stone-200 bg-white p-6">
+        <div className="bg-white">
           <h2 className="text-lg font-semibold">메뉴 추가</h2>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             <div className="grid gap-3 md:col-span-2 md:grid-cols-[140px_1fr_120px_auto]">
@@ -311,7 +311,7 @@ export default function AdminMenuPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {["전체", ...categories, "기타"]
+          {["전체", ...categories]
             .filter((v, i, a) => a.indexOf(v) === i)
             .map((category) => (
               <button
@@ -501,8 +501,8 @@ export default function AdminMenuPage() {
               ))}
           </div>
         ) : (
-          <div className="rounded-2xl border border-stone-200 bg-white">
-            <div className="hidden grid-cols-[140px_1fr_120px_220px_110px_120px] items-center gap-3 rounded-t-2xl border-b border-stone-200 bg-clay px-4 py-3 text-sm font-semibold text-center md:grid">
+          <div className="border-y border-stone-200 bg-white">
+            <div className="hidden grid-cols-[140px_1fr_120px_220px_110px_120px] items-center gap-3 border-b border-stone-200 bg-clay px-4 py-3 text-sm font-semibold text-center md:grid">
               <span>카테고리</span>
               <span>메뉴명</span>
               <span>가격</span>
@@ -510,7 +510,7 @@ export default function AdminMenuPage() {
               <span>메뉴 숨김</span>
               <span>편집</span>
             </div>
-            <div className="divide-y divide-stone-200">
+            <div className="divide-y divide-stone-200 px-4 py-2 md:px-0 md:py-0">
               {menu
                 .filter((item) =>
                   activeCategory === "전체"
@@ -519,7 +519,7 @@ export default function AdminMenuPage() {
                 )
                 .filter((item) => (showHidden ? true : !item.is_hidden))
                 .map((item) => (
-                  <div key={item.id} className="px-4 py-4 text-sm">
+                  <div key={item.id} className="py-3 text-sm md:px-4">
                     <div className="grid gap-3 md:grid-cols-[140px_1fr_120px_220px_110px_120px] md:items-center md:gap-3">
                       <div className="grid gap-1">
                         <span className="text-xs text-stone-500 md:hidden">

@@ -48,8 +48,15 @@ export default function AdminCategoriesPage() {
     await load();
   };
 
-  const updateCategory = async (id: string, field: "name" | "sort_order", value: string) => {
-    await supabase.from("categories").update({ [field]: value }).eq("id", id);
+  const updateCategory = async (
+    id: string,
+    field: "name" | "sort_order",
+    value: string,
+  ) => {
+    await supabase
+      .from("categories")
+      .update({ [field]: value })
+      .eq("id", id);
     await load();
   };
 
@@ -62,9 +69,11 @@ export default function AdminCategoriesPage() {
     <AdminGate>
       <div className="space-y-6">
         <div className="grid gap-6 md:grid-cols-[1.1fr_1.9fr]">
-          <div className="rounded-2xl border border-stone-200 bg-white p-6">
+          <div className="bg-white">
             <h2 className="text-lg font-semibold">카테고리 추가</h2>
-            <p className="mt-2 text-sm text-stone-500">정렬 순서는 숫자가 낮을수록 먼저 표시됩니다.</p>
+            <p className="mt-2 text-sm text-stone-500">
+              정렬 순서는 숫자가 낮을수록 먼저 표시됩니다.
+            </p>
             <div className="mt-5 flex flex-wrap items-center gap-2 md:grid md:gap-3">
               <div className="relative w-44 md:w-full">
                 <input
@@ -86,7 +95,7 @@ export default function AdminCategoriesPage() {
               </div>
               <div className="relative w-20 md:w-full">
                 <input
-                  className="w-full rounded-xl border border-stone-200 px-3 py-2 pr-9 text-center md:px-4 md:text-left"
+                  className="w-full rounded-xl border border-stone-200 px-3 py-2 pr-3 text-center md:px-4 md:text-left"
                   type="number"
                   placeholder="정렬 순서"
                   value={sortOrder}
@@ -103,7 +112,10 @@ export default function AdminCategoriesPage() {
                   </button>
                 )}
               </div>
-              <button className="rounded-full bg-accent px-4 py-2 text-white md:px-5" onClick={addCategory}>
+              <button
+                className="rounded-full bg-accent px-4 py-2 text-white md:px-5"
+                onClick={addCategory}
+              >
                 추가
               </button>
             </div>
@@ -114,7 +126,9 @@ export default function AdminCategoriesPage() {
             <div className="flex items-center justify-between px-6 py-5">
               <div>
                 <h2 className="text-lg font-semibold">카테고리 목록</h2>
-                <p className="mt-1 text-sm text-stone-500">총 {categories.length}개</p>
+                <p className="mt-1 text-sm text-stone-500">
+                  총 {categories.length}개
+                </p>
               </div>
             </div>
             <div className="border-t border-stone-200">
@@ -125,7 +139,9 @@ export default function AdminCategoriesPage() {
               </div>
               <div className="divide-y divide-stone-200 px-4 py-2 md:px-0 md:py-0">
                 {categories.length === 0 ? (
-                  <p className="px-2 py-4 text-stone-500 md:px-6">등록된 카테고리가 없습니다.</p>
+                  <p className="px-2 py-4 text-stone-500 md:px-6">
+                    등록된 카테고리가 없습니다.
+                  </p>
                 ) : (
                   categories.map((category) => (
                     <div
@@ -134,24 +150,42 @@ export default function AdminCategoriesPage() {
                     >
                       <div className="flex flex-wrap items-center gap-2 md:contents">
                         <div className="grid gap-1">
-                          <span className="text-xs text-stone-500 md:hidden">카테고리명</span>
+                          <span className="text-xs text-stone-500 md:hidden">
+                            카테고리명
+                          </span>
                           <input
                             className="w-44 rounded-xl border border-stone-200 px-3 py-2 md:w-full"
                             defaultValue={category.name}
-                            onBlur={(e) => updateCategory(category.id, "name", e.target.value)}
+                            onBlur={(e) =>
+                              updateCategory(
+                                category.id,
+                                "name",
+                                e.target.value,
+                              )
+                            }
                           />
                         </div>
                         <div className="grid gap-1">
-                          <span className="text-xs text-stone-500 md:hidden">정렬</span>
+                          <span className="text-xs text-stone-500 md:hidden">
+                            정렬
+                          </span>
                           <input
                             className="w-20 rounded-xl border border-stone-200 px-2 py-2 text-center md:w-24"
                             type="number"
                             defaultValue={category.sort_order}
-                            onBlur={(e) => updateCategory(category.id, "sort_order", e.target.value)}
+                            onBlur={(e) =>
+                              updateCategory(
+                                category.id,
+                                "sort_order",
+                                e.target.value,
+                              )
+                            }
                           />
                         </div>
                         <div className="grid gap-1 md:hidden">
-                          <span className="text-xs text-stone-500 opacity-0">관리</span>
+                          <span className="text-xs text-stone-500 opacity-0">
+                            관리
+                          </span>
                           <button
                             className="rounded-full border border-red-300 px-3 py-1.5 text-xs text-red-600"
                             onClick={() => deleteCategory(category.id)}
