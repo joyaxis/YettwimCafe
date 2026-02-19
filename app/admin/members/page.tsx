@@ -181,7 +181,7 @@ export default function MembersPage() {
         </div>
 
         <div className="divide-y divide-stone-200 border-y border-stone-200">
-          <div className="grid grid-cols-[120px_1fr_80px_80px] items-center gap-3 bg-clay px-4 py-3 text-sm font-semibold text-stone-600 text-center">
+          <div className="grid grid-cols-[100px_1fr_60px_60px] md:grid-cols-[120px_1fr_80px_80px] items-center gap-3 bg-clay px-4 py-3 text-sm font-semibold text-stone-600 text-center">
             <span>부서</span>
             <span>이름</span>
             <span>숨김</span>
@@ -214,10 +214,10 @@ export default function MembersPage() {
               .map((member) => (
                 <div
                   key={member.id}
-                  className="grid grid-cols-[120px_1fr_80px_80px] items-center gap-3 px-4 py-3 text-sm text-center"
+                  className="grid grid-cols-[100px_1fr_60px_60px] md:grid-cols-[120px_1fr_80px_80px] items-center gap-3 px-4 py-3 text-sm text-center"
                 >
                   <span>{member.ministry || "-"}</span>
-                  <span>{member.name}</span>
+                  <span className="truncate">{member.name}</span>
                   <div className="flex justify-center">
                     <label className="flex items-center gap-2">
                       <input
