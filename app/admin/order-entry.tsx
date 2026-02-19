@@ -9,6 +9,7 @@ type MenuItem = {
   price: number;
   is_hot: boolean;
   is_ice: boolean;
+  category?: string | null;
 };
 
 type DraftItem = {
@@ -25,18 +26,67 @@ export default function OrderEntry() {
   const [temp, setTemp] = useState<"HOT" | "ICE" | null>(null);
   const [items, setItems] = useState<DraftItem[]>([]);
   const [customerName, setCustomerName] = useState("");
+  const [ministry, setMinistry] = useState("청년부");
+  const [memberOptions, setMemberOptions] = useState<string[]>([]);
+  const [selectedMember, setSelectedMember] = useState("");
   const [status, setStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
       const { data } = await supabase
         .from("menu_items")
-        .select("id,name,price,is_hot,is_ice")
+        .select("id,name,price,is_hot,is_ice,category")
+        .eq("is_hidden", false)
         .order("created_at", { ascending: true });
       setMenu((data as MenuItem[]) || []);
     };
     load();
   }, []);
+
+  const groupedMenu = useMemo(() => {
+    const map = new Map<string, MenuItem[]>();
+    menu.forEach((item) => {
+      const key = item.category || "기타";
+      const list = map.get(key);
+      if (list) {
+        list.push(item);
+      } else {
+        map.set(key, [item]);
+      }
+    });
+    return Array.from(map.entries());
+  }, [menu]);
+
+  useEffect(() => {
+    const loadMembers = async () => {
+      if (ministry === "direct") {
+        setMemberOptions([]);
+        setSelectedMember("");
+        return;
+      }
+      const { data } = await supabase
+        .from("yettwim_member")
+        .select("name")
+        .eq("ministry", ministry)
+        .eq("is_hidden", false)
+        .order("name", { ascending: true });
+      const names = (data || [])
+        .map((row) => row?.name)
+        .filter((name): name is string => Boolean(name));
+      setMemberOptions(names);
+      if (names.length === 1) {
+        setSelectedMember(names[0]);
+      } else {
+        setSelectedMember("");
+      }
+    };
+    loadMembers();
+  }, [ministry]);
+
+  useEffect(() => {
+    if (ministry === "direct") return;
+    setCustomerName(selectedMember);
+  }, [ministry, selectedMember]);
 
   const selectedMenu = useMemo(
     () => menu.find((item) => item.id === selectedId) || null,
@@ -164,6 +214,9 @@ export default function OrderEntry() {
     setItems([]);
     setSelectedId("");
     setCustomerName("");
+    setMinistry("direct");
+    setMemberOptions([]);
+    setSelectedMember("");
     setStatus("주문이 등록되었습니다.");
   };
 
@@ -171,22 +224,54 @@ export default function OrderEntry() {
     <div className="rounded-2xl border border-stone-200 bg-white p-5">
       <h2 className="text-lg font-semibold">주문하기</h2>
       <div className="mt-4 grid gap-3">
-        <div className="relative">
-          <input
-            className="w-full rounded-xl border border-stone-200 px-4 py-2 pr-10"
-            placeholder="주문자명 입력"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-          />
-          {customerName && (
-            <button
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-stone-400"
-              onClick={() => setCustomerName("")}
-              aria-label="입력 지우기"
-              title="입력 지우기"
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            className="rounded-xl border border-stone-200 px-3 py-2"
+            value={ministry}
+            onChange={(e) => {
+              setMinistry(e.target.value);
+              setCustomerName("");
+            }}
+          >
+            <option value="청년부">청년부</option>
+            <option value="남선교">남선교</option>
+            <option value="여전도">여전도</option>
+            <option value="부목사">부목사</option>
+            <option value="담임목사">담임목사</option>
+            <option value="direct">직접 입력</option>
+          </select>
+          {ministry === "direct" ? (
+            <div className="relative flex-1 min-w-[200px]">
+              <input
+                className="w-full rounded-xl border border-stone-200 px-4 py-2 pr-10"
+                placeholder="주문자명 입력"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+              />
+              {customerName && (
+                <button
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-stone-400"
+                  onClick={() => setCustomerName("")}
+                  aria-label="입력 지우기"
+                  title="입력 지우기"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ) : (
+            <select
+              className="flex-1 rounded-xl border border-stone-200 px-4 py-2"
+              value={selectedMember}
+              onChange={(e) => setSelectedMember(e.target.value)}
             >
-              ✕
-            </button>
+              <option value="">주문자명 선택</option>
+              {memberOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
           )}
         </div>
         <select
@@ -195,10 +280,14 @@ export default function OrderEntry() {
           onChange={(e) => setSelectedId(e.target.value)}
         >
           <option value="">메뉴 선택</option>
-          {menu.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-            </option>
+          {groupedMenu.map(([category, items]) => (
+            <optgroup key={category} label={`---[ ${category} ]---`}>
+              {items.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
         <div className="flex flex-wrap items-center gap-2">

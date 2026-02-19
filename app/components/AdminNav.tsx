@@ -92,6 +92,7 @@ export default function AdminNav({
             <>
               <NavButton href="/admin/categories" current={pathname}>카테고리</NavButton>
               <NavButton href="/admin/menu" current={pathname}>메뉴</NavButton>
+              <NavButton href="/admin/members" current={pathname}>멤버 관리</NavButton>
             </>
           )}
         </nav>
