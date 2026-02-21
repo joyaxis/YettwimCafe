@@ -9,6 +9,7 @@ export type MenuItem = {
   is_hidden: boolean;
   is_hot: boolean;
   is_ice: boolean;
+  sort_order?: number | null;
 };
 
 export type InventoryItem = {

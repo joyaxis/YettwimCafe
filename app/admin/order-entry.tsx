@@ -35,9 +35,9 @@ export default function OrderEntry() {
     const load = async () => {
       const { data } = await supabase
         .from("menu_items")
-        .select("id,name,price,is_hot,is_ice,category")
+        .select("id,name,price,is_hot,is_ice,category,sort_order")
         .eq("is_hidden", false)
-        .order("created_at", { ascending: true });
+        .order("sort_order", { ascending: true });
       setMenu((data as MenuItem[]) || []);
     };
     load();
@@ -162,7 +162,7 @@ export default function OrderEntry() {
   const selectedQty = useMemo(() => {
     if (!selectedMenu || !temp) return 0;
     const found = items.find(
-      (item) => item.menuId === selectedMenu.id && item.temp === temp
+      (item) => item.menuId === selectedMenu.id && item.temp === temp,
     );
     return found?.qty || 0;
   }, [items, selectedMenu, temp]);
@@ -233,11 +233,11 @@ export default function OrderEntry() {
               setCustomerName("");
             }}
           >
-            <option value="청년부">청년부</option>
+            <option value="담임목사">담임목사</option>
+            <option value="부목사">부목사</option>
             <option value="남선교">남선교</option>
             <option value="여전도">여전도</option>
-            <option value="부목사">부목사</option>
-            <option value="담임목사">담임목사</option>
+            <option value="청년부">청년부</option>
             <option value="direct">직접 입력</option>
           </select>
           {ministry === "direct" ? (
@@ -341,9 +341,9 @@ export default function OrderEntry() {
                     .map((p) =>
                       p.menuId === selectedMenu.id && p.temp === temp
                         ? { ...p, qty: p.qty - 1 }
-                        : p
+                        : p,
                     )
-                    .filter((p) => p.qty > 0)
+                    .filter((p) => p.qty > 0),
                 );
               }}
             >

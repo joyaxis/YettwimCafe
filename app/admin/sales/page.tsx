@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import * as XLSX from "xlsx";
 import AdminGate from "../../components/AdminGate";
 import { supabase } from "../../../lib/supabaseClient";
 
@@ -20,6 +21,10 @@ export default function AdminSalesPage() {
   const [items, setItems] = useState<SalesRow[]>([]);
   const [date, setDate] = useState("");
   const [nameQuery, setNameQuery] = useState("");
+  const [month, setMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
 
   const load = async () => {
     let query = supabase
@@ -29,13 +34,17 @@ export default function AdminSalesPage() {
       )
       .order("created_at", { ascending: false, foreignTable: "orders" });
 
-    if (nameQuery.trim()) {
-      query = query.ilike("orders.customer_name", `%${nameQuery.trim()}%`);
-    }
-
     const { data } = await query;
     const filtered = ((data as SalesRow[]) || []).filter((item) => {
       if (item.orders?.status !== "완료") return false;
+      if (nameQuery.trim()) {
+        const q = nameQuery.trim().toLowerCase();
+        const matchesCustomer = (item.orders?.customer_name || "")
+          .toLowerCase()
+          .includes(q);
+        const matchesMenu = (item.name || "").toLowerCase().includes(q);
+        if (!matchesCustomer && !matchesMenu) return false;
+      }
       if (!date) return true;
       const createdAt = item.orders?.created_at;
       if (!createdAt) return false;
@@ -45,8 +54,19 @@ export default function AdminSalesPage() {
       const day = String(localDate.getDate()).padStart(2, "0");
       return `${year}-${month}-${day}` === date;
     });
+    const monthFiltered = date
+      ? filtered
+      : filtered.filter((item) => {
+          const createdAt = item.orders?.created_at;
+          if (!createdAt) return false;
+          const localDate = new Date(createdAt);
+          return (
+            localDate.getFullYear() === month.getFullYear() &&
+            localDate.getMonth() === month.getMonth()
+          );
+        });
 
-    const sorted = filtered.sort((a, b) => {
+    const sorted = monthFiltered.sort((a, b) => {
       const aTime = a.orders?.created_at
         ? new Date(a.orders.created_at).getTime()
         : 0;
@@ -60,7 +80,14 @@ export default function AdminSalesPage() {
 
   useEffect(() => {
     load();
-  }, [date, nameQuery]);
+  }, [date, nameQuery, month]);
+
+  useEffect(() => {
+    if (!date) return;
+    const [y, m] = date.split("-").map(Number);
+    if (!y || !m) return;
+    setMonth(new Date(y, m - 1, 1));
+  }, [date]);
 
   const totalAmount = useMemo(
     () =>
@@ -71,12 +98,72 @@ export default function AdminSalesPage() {
     [items],
   );
 
+  const handleExport = () => {
+    const rows = items.map((item) => {
+      const createdAt = item.orders?.created_at
+        ? new Date(item.orders.created_at)
+        : null;
+      const dateLabel = createdAt
+        ? createdAt.toISOString().slice(0, 10)
+        : "";
+      const amount = Number(item.price) * Number(item.qty);
+      return {
+        날짜: dateLabel,
+        메뉴명: item.name,
+        금액: amount,
+        주문자: item.orders?.customer_name || "",
+      };
+    });
+    const totalRow = {
+      날짜: "",
+      메뉴명: "합계",
+      금액: totalAmount,
+      주문자: "",
+    };
+    const sheet = XLSX.utils.json_to_sheet([...rows, totalRow], {
+      header: ["날짜", "메뉴명", "금액", "주문자"],
+    });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, sheet, "매출현황");
+    const label = date
+      ? date
+      : `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}`;
+    XLSX.writeFile(wb, `sales-${label}.xlsx`);
+  };
+
   return (
     <AdminGate>
       <div className="bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">매출 현황</h2>
+        <div>
+          <h2 className="text-lg font-semibold">매출 현황</h2>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3 text-base text-stone-600">
+            <button
+              className="rounded-full border border-stone-300 px-2 py-1 text-xs text-stone-500"
+              onClick={() => {
+                setDate("");
+                setMonth(
+                  new Date(month.getFullYear(), month.getMonth() - 1, 1),
+                );
+              }}
+            >
+              이전
+            </button>
+            <span>
+              {month.getFullYear()}년 {month.getMonth() + 1}월
+            </span>
+            <button
+              className="rounded-full border border-stone-300 px-2 py-1 text-xs text-stone-500"
+              onClick={() => {
+                setDate("");
+                setMonth(
+                  new Date(month.getFullYear(), month.getMonth() + 1, 1),
+                );
+              }}
+            >
+              다음
+            </button>
           </div>
           <div className="grid gap-2 md:flex md:flex-wrap md:items-center">
             <div className="relative md:w-auto">
@@ -90,7 +177,7 @@ export default function AdminSalesPage() {
             <div className="relative">
               <input
                 className="w-full border-b border-stone-300 bg-transparent px-1 py-2 pr-9 text-sm focus:border-stone-500 focus:outline-none"
-                placeholder="주문자 검색"
+                placeholder="주문자 및 메뉴명 검색"
                 value={nameQuery}
                 onChange={(e) => setNameQuery(e.target.value)}
               />
@@ -105,6 +192,12 @@ export default function AdminSalesPage() {
                 </button>
               )}
             </div>
+            <button
+              className="rounded-full border border-accent px-4 py-2 text-sm text-accent"
+              onClick={handleExport}
+            >
+              엑셀 다운로드
+            </button>
           </div>
         </div>
 

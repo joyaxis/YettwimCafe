@@ -205,8 +205,9 @@ export default function OrderPage() {
     supabase
       .from("menu_items")
       .select(
-        "id,name,description,price,category,image_url,recipe,is_hidden,is_hot,is_ice",
+        "id,name,description,price,category,image_url,recipe,is_hidden,is_hot,is_ice,sort_order",
       )
+      .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true })
       .then(({ data }) => {
         if (!active) return;

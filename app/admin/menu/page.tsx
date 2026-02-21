@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AdminGate from "../../components/AdminGate";
 import { supabase } from "../../../lib/supabaseClient";
 import type { MenuItem } from "../../../lib/types";
@@ -26,6 +26,8 @@ export default function AdminMenuPage() {
   const [menuTab, setMenuTab] = useState<"list" | "recipe">("list");
   const [recipeDrafts, setRecipeDrafts] = useState<Record<string, string>>({});
   const [recipeNotice, setRecipeNotice] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("admin_menu_view");
@@ -42,8 +44,9 @@ export default function AdminMenuPage() {
     const { data } = await supabase
       .from("menu_items")
       .select(
-        "id,name,description,price,category,recipe,is_hidden,is_hot,is_ice",
+        "id,name,description,price,category,recipe,is_hidden,is_hot,is_ice,sort_order",
       )
+      .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
     const nextMenu = (data as MenuItem[]) || [];
     setMenu(nextMenu);
@@ -73,6 +76,8 @@ export default function AdminMenuPage() {
 
   const addItem = async () => {
     setStatus(null);
+    const nextSort =
+      Math.max(0, ...menu.map((item) => item.sort_order ?? 0)) + 1;
     const { error } = await supabase.from("menu_items").insert({
       name: draft.name,
       description: draft.description,
@@ -81,6 +86,7 @@ export default function AdminMenuPage() {
       is_hidden: false,
       is_hot: draft.is_hot ?? false,
       is_ice: draft.is_ice ?? false,
+      sort_order: nextSort,
     });
     if (error) {
       setStatus("추가 실패: " + error.message);
@@ -122,6 +128,48 @@ export default function AdminMenuPage() {
       return;
     }
     await supabase.from("menu_items").delete().eq("id", id);
+    await load();
+  };
+
+  const listItems = useMemo(
+    () =>
+      menu
+        .filter((item) =>
+          activeCategory === "전체"
+            ? true
+            : (item.category || "기타") === activeCategory,
+        )
+        .filter((item) => (showHidden ? true : !item.is_hidden)),
+    [menu, activeCategory, showHidden],
+  );
+
+  const handleDrop = async (targetId: string) => {
+    if (!draggingId || draggingId === targetId) return;
+    const current = listItems.slice();
+    const fromIndex = current.findIndex((item) => item.id === draggingId);
+    const toIndex = current.findIndex((item) => item.id === targetId);
+    if (fromIndex < 0 || toIndex < 0) return;
+    const [moved] = current.splice(fromIndex, 1);
+    current.splice(toIndex, 0, moved);
+
+    const updates = current.map((item, index) => ({
+      id: item.id,
+      sort_order: index + 1,
+    }));
+    setMenu((prev) =>
+      prev.map((item) => {
+        const found = updates.find((u) => u.id === item.id);
+        return found ? { ...item, sort_order: found.sort_order } : item;
+      }),
+    );
+    await Promise.all(
+      updates.map((update) =>
+        supabase
+          .from("menu_items")
+          .update({ sort_order: update.sort_order })
+          .eq("id", update.id),
+      ),
+    );
     await load();
   };
 
@@ -373,14 +421,7 @@ export default function AdminMenuPage() {
           </>
         ) : viewMode === "gallery" ? (
           <div className="grid gap-4 md:grid-cols-2">
-            {menu
-              .filter((item) =>
-                activeCategory === "전체"
-                  ? true
-                  : (item.category || "기타") === activeCategory,
-              )
-              .filter((item) => (showHidden ? true : !item.is_hidden))
-              .map((item) => (
+            {listItems.map((item) => (
                 <div
                   key={item.id}
                   className="rounded-2xl border border-stone-200 bg-white p-6"
@@ -502,7 +543,8 @@ export default function AdminMenuPage() {
           </div>
         ) : (
           <div className="border-y border-stone-200 bg-white">
-            <div className="hidden grid-cols-[140px_1fr_120px_220px_110px_120px] items-center gap-3 border-b border-stone-200 bg-clay px-4 py-3 text-sm font-semibold text-center md:grid">
+            <div className="hidden grid-cols-[36px_140px_1fr_120px_220px_110px_120px] items-center gap-3 border-b border-stone-200 bg-clay px-4 py-3 text-sm font-semibold text-center md:grid">
+              <span>순서</span>
               <span>카테고리</span>
               <span>메뉴명</span>
               <span>가격</span>
@@ -511,16 +553,48 @@ export default function AdminMenuPage() {
               <span>편집</span>
             </div>
             <div className="divide-y divide-stone-200 px-4 py-2 md:px-0 md:py-0">
-              {menu
-                .filter((item) =>
-                  activeCategory === "전체"
-                    ? true
-                    : (item.category || "기타") === activeCategory,
-                )
-                .filter((item) => (showHidden ? true : !item.is_hidden))
-                .map((item) => (
-                  <div key={item.id} className="py-3 text-sm md:px-4">
-                    <div className="grid gap-3 md:grid-cols-[140px_1fr_120px_220px_110px_120px] md:items-center md:gap-3">
+              {listItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`py-3 text-sm md:px-4 ${
+                      draggingId === item.id ? "opacity-60" : ""
+                    }`}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragOverId(item.id);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragOverId(null);
+                      handleDrop(item.id);
+                    }}
+                    onDragLeave={() => {
+                      if (dragOverId === item.id) setDragOverId(null);
+                    }}
+                  >
+                    <div
+                      className={`grid gap-3 md:grid-cols-[36px_140px_1fr_120px_220px_110px_120px] md:items-center md:gap-3 ${
+                        dragOverId === item.id ? "bg-stone-50" : ""
+                      }`}
+                    >
+                      <div className="hidden items-center justify-center md:flex">
+                        <button
+                          className="cursor-grab text-stone-400"
+                          draggable
+                          onDragStart={(e) => {
+                            setDraggingId(item.id);
+                            e.dataTransfer.effectAllowed = "move";
+                          }}
+                          onDragEnd={() => {
+                            setDraggingId(null);
+                            setDragOverId(null);
+                          }}
+                          aria-label="순서 이동"
+                          title="드래그해서 순서 변경"
+                        >
+                          ⋮⋮
+                        </button>
+                      </div>
                       <div className="grid gap-1">
                         <span className="text-xs text-stone-500 md:hidden">
                           카테고리

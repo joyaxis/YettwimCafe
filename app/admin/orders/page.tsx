@@ -28,12 +28,13 @@ export default function AdminOrdersPage() {
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
   const [nameQuery, setNameQuery] = useState("");
   const [dateError, setDateError] = useState("");
+  const [allPage, setAllPage] = useState(1);
   const [inProgressPage, setInProgressPage] = useState(1);
   const [completedPage, setCompletedPage] = useState(1);
   const [canceledPage, setCanceledPage] = useState(1);
   const [activeTab, setActiveTab] = useState<
-    "inProgress" | "completed" | "canceled"
-  >("inProgress");
+    "all" | "inProgress" | "completed" | "canceled"
+  >("all");
   const PAGE_SIZE = 10;
   const isInDateRange = (createdAt?: string) => {
     if (!dateRange.from && !dateRange.to) return true;
@@ -44,49 +45,47 @@ export default function AdminOrdersPage() {
       date <= (dateRange.to || "9999-12-31")
     );
   };
-  const inProgressOrders = orders
+  const allOrders = orders
     .filter(
       (order) =>
-        order.status !== "완료" &&
-        order.status !== "주문취소" &&
         isInDateRange(order.created_at) &&
         (!nameQuery ||
           (order.customer_name || "")
             .toLowerCase()
             .includes(nameQuery.toLowerCase())),
+    )
+    .slice()
+    .sort(
+      (a, b) => (b.created_at || "").localeCompare(a.created_at || ""),
+    );
+  const inProgressOrders = allOrders
+    .filter(
+      (order) =>
+        order.status !== "완료" && order.status !== "주문취소",
     )
     .slice()
     .sort(
       (a, b) => (a.created_at || "").localeCompare(b.created_at || ""),
     );
-  const completedOrders = orders
+  const completedOrders = allOrders
     .filter(
       (order) =>
-        order.status === "완료" &&
-        isInDateRange(order.created_at) &&
-        (!nameQuery ||
-          (order.customer_name || "")
-            .toLowerCase()
-            .includes(nameQuery.toLowerCase())),
+        order.status === "완료",
     )
     .slice()
     .sort(
       (a, b) => (b.created_at || "").localeCompare(a.created_at || ""),
     );
-  const canceledOrders = orders
+  const canceledOrders = allOrders
     .filter(
       (order) =>
-        order.status === "주문취소" &&
-        isInDateRange(order.created_at) &&
-        (!nameQuery ||
-          (order.customer_name || "")
-            .toLowerCase()
-            .includes(nameQuery.toLowerCase())),
+        order.status === "주문취소",
     )
     .slice()
     .sort(
       (a, b) => (b.created_at || "").localeCompare(a.created_at || ""),
     );
+  const allTotalPages = Math.max(1, Math.ceil(allOrders.length / PAGE_SIZE));
   const inProgressTotalPages = Math.max(
     1,
     Math.ceil(inProgressOrders.length / PAGE_SIZE),
@@ -98,6 +97,10 @@ export default function AdminOrdersPage() {
   const canceledTotalPages = Math.max(
     1,
     Math.ceil(canceledOrders.length / PAGE_SIZE),
+  );
+  const pagedAllOrders = allOrders.slice(
+    (allPage - 1) * PAGE_SIZE,
+    allPage * PAGE_SIZE,
   );
   const pagedInProgressOrders = inProgressOrders.slice(
     (inProgressPage - 1) * PAGE_SIZE,
@@ -153,6 +156,7 @@ export default function AdminOrdersPage() {
   }, [dateRange.from, dateRange.to]);
 
   useEffect(() => {
+    setAllPage(1);
     setInProgressPage(1);
     setCompletedPage(1);
     setCanceledPage(1);
@@ -330,6 +334,7 @@ export default function AdminOrdersPage() {
         </div>
         <div className="flex flex-wrap gap-4 border-b border-stone-200 text-sm">
           {[
+            { key: "all", label: `전체 (${allOrders.length})` },
             { key: "inProgress", label: `진행 중 (${inProgressOrders.length})` },
             { key: "completed", label: `완료 (${completedOrders.length})` },
             { key: "canceled", label: `취소 (${canceledOrders.length})` },
@@ -343,7 +348,7 @@ export default function AdminOrdersPage() {
               }`}
               onClick={() =>
                 setActiveTab(
-                  tab.key as "inProgress" | "completed" | "canceled",
+                  tab.key as "all" | "inProgress" | "completed" | "canceled",
                 )
               }
             >
@@ -351,6 +356,99 @@ export default function AdminOrdersPage() {
             </button>
           ))}
         </div>
+
+        {activeTab === "all" && (
+          <>
+            {allOrders.length === 0 ? (
+              <div className="rounded-2xl border border-stone-200 bg-white p-6">
+                <p>주문 내역이 없습니다.</p>
+              </div>
+            ) : (
+              pagedAllOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className={`rounded-2xl border border-stone-200 p-6 ${
+                    order.status === "완료" || order.status === "주문취소"
+                      ? "bg-stone-100"
+                      : "bg-white"
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-lg font-semibold">
+                          주문번호 {order.order_code || order.id}
+                        </h3>
+                        {(order.status === "완료" ||
+                          order.status === "주문취소") && (
+                          <button
+                            className="rounded-full border border-red-300 px-3 py-1 text-xs text-red-600"
+                            onClick={async () => {
+                              if (!confirm("삭제하시겠습니까?")) return;
+                              await supabase
+                                .from("orders")
+                                .delete()
+                                .eq("id", order.id);
+                              window.location.reload();
+                              await load();
+                            }}
+                          >
+                            주문 삭제
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-sm text-stone-500">
+                        {order.customer_name
+                          ? `주문자 ${order.customer_name} · `
+                          : ""}
+                        총 결제 {Number(order.total).toLocaleString("ko-KR")} ·
+                        주문 일시{" "}
+                        {order.created_at
+                          ? new Date(order.created_at)
+                              .toLocaleString("sv-SE")
+                              .replace(" ", " ")
+                          : "-"}
+                      </p>
+                    </div>
+                    <select
+                      className="rounded-xl border border-stone-200 px-3 py-2"
+                      value={order.status}
+                      onChange={(e) =>
+                        updateOrderStatus(
+                          order.id,
+                          e.target.value as Order["status"],
+                          order.status,
+                        )
+                      }
+                    >
+                      {ORDER_STATUSES.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <OrderItemsPanel
+                    items={order.order_items || []}
+                    orderId={order.id}
+                    defaultOpen={
+                      order.status !== "완료" && order.status !== "주문취소"
+                    }
+                    onUpdate={updateItemStatus}
+                  />
+                </div>
+              ))
+            )}
+            {allOrders.length > PAGE_SIZE && (
+              <Pagination
+                current={allPage}
+                total={allTotalPages}
+                onChange={setAllPage}
+              />
+            )}
+          </>
+        )}
 
         {activeTab === "inProgress" && (
           <>
