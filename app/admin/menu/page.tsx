@@ -1,6 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import AdminGate from "../../components/AdminGate";
 import { supabase } from "../../../lib/supabaseClient";
 import type { MenuItem } from "../../../lib/types";
@@ -26,8 +41,11 @@ export default function AdminMenuPage() {
   const [menuTab, setMenuTab] = useState<"list" | "recipe">("list");
   const [recipeDrafts, setRecipeDrafts] = useState<Record<string, string>>({});
   const [recipeNotice, setRecipeNotice] = useState<string | null>(null);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 5 } }),
+  );
 
   useEffect(() => {
     const saved = localStorage.getItem("admin_menu_view");
@@ -142,36 +160,6 @@ export default function AdminMenuPage() {
         .filter((item) => (showHidden ? true : !item.is_hidden)),
     [menu, activeCategory, showHidden],
   );
-
-  const handleDrop = async (targetId: string) => {
-    if (!draggingId || draggingId === targetId) return;
-    const current = listItems.slice();
-    const fromIndex = current.findIndex((item) => item.id === draggingId);
-    const toIndex = current.findIndex((item) => item.id === targetId);
-    if (fromIndex < 0 || toIndex < 0) return;
-    const [moved] = current.splice(fromIndex, 1);
-    current.splice(toIndex, 0, moved);
-
-    const updates = current.map((item, index) => ({
-      id: item.id,
-      sort_order: index + 1,
-    }));
-    setMenu((prev) =>
-      prev.map((item) => {
-        const found = updates.find((u) => u.id === item.id);
-        return found ? { ...item, sort_order: found.sort_order } : item;
-      }),
-    );
-    await Promise.all(
-      updates.map((update) =>
-        supabase
-          .from("menu_items")
-          .update({ sort_order: update.sort_order })
-          .eq("id", update.id),
-      ),
-    );
-    await load();
-  };
 
   return (
     <AdminGate>
@@ -553,197 +541,60 @@ export default function AdminMenuPage() {
               <span>편집</span>
             </div>
             <div className="divide-y divide-stone-200 px-4 py-2 md:px-0 md:py-0">
-              {listItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`py-3 text-sm md:px-4 ${
-                      draggingId === item.id ? "opacity-60" : ""
-                    }`}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setDragOverId(item.id);
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      setDragOverId(null);
-                      handleDrop(item.id);
-                    }}
-                    onDragLeave={() => {
-                      if (dragOverId === item.id) setDragOverId(null);
-                    }}
-                  >
-                    <div
-                      className={`grid gap-3 md:grid-cols-[36px_140px_1fr_120px_220px_110px_120px] md:items-center md:gap-3 ${
-                        dragOverId === item.id ? "bg-stone-50" : ""
-                      }`}
-                    >
-                      <div className="hidden items-center justify-center md:flex">
-                        <button
-                          className="cursor-grab text-stone-400"
-                          draggable
-                          onDragStart={(e) => {
-                            setDraggingId(item.id);
-                            e.dataTransfer.effectAllowed = "move";
-                          }}
-                          onDragEnd={() => {
-                            setDraggingId(null);
-                            setDragOverId(null);
-                          }}
-                          aria-label="순서 이동"
-                          title="드래그해서 순서 변경"
-                        >
-                          ⋮⋮
-                        </button>
-                      </div>
-                      <div className="grid gap-1">
-                        <span className="text-xs text-stone-500 md:hidden">
-                          카테고리
-                        </span>
-                        <select
-                          className="rounded-lg border border-stone-200 px-3 py-2"
-                          value={item.category || ""}
-                          onChange={(e) =>
-                            updateItem(item.id, "category", e.target.value)
-                          }
-                        >
-                          <option value="">선택</option>
-                          {categories.map((category) => (
-                            <option key={category} value={category}>
-                              {category}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="grid gap-1">
-                        <span className="text-xs text-stone-500 md:hidden">
-                          메뉴명
-                        </span>
-                        <input
-                          className="rounded-lg border border-stone-200 px-3 py-2 text-base md:text-sm"
-                          defaultValue={item.name}
-                          onBlur={(e) =>
-                            updateItem(item.id, "name", e.target.value)
-                          }
-                        />
-                      </div>
-                      <div className="grid gap-1 md:contents">
-                        <span className="text-xs text-stone-500 md:hidden">
-                          가격
-                        </span>
-                        <div className="flex items-center gap-3 md:contents">
-                          <input
-                            className="w-32 rounded-lg border border-stone-200 px-3 py-2 text-sm md:w-full"
-                            type="number"
-                            defaultValue={item.price}
-                            onBlur={(e) =>
-                              updateItem(item.id, "price", e.target.value)
-                            }
-                          />
-                          <div className="flex flex-nowrap items-center justify-center gap-2 text-sm text-stone-600 md:justify-center md:gap-3 md:self-center">
-                            <label className="flex items-center gap-2 text-red-600">
-                              <input
-                                type="checkbox"
-                                defaultChecked={item.is_hot}
-                                onChange={(e) =>
-                                  updateItem(
-                                    item.id,
-                                    "is_hot",
-                                    e.target.checked,
-                                  )
-                                }
-                              />
-                              HOT
-                            </label>
-                            <label className="flex items-center gap-2 text-blue-500">
-                              <input
-                                type="checkbox"
-                                defaultChecked={item.is_ice}
-                                onChange={(e) =>
-                                  updateItem(
-                                    item.id,
-                                    "is_ice",
-                                    e.target.checked,
-                                  )
-                                }
-                              />
-                              ICE
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="hidden items-center gap-2 text-sm text-stone-600 md:flex md:justify-center">
-                        <input
-                          id={`hide-list-${item.id}`}
-                          type="checkbox"
-                          defaultChecked={item.is_hidden}
-                          onChange={(e) =>
-                            updateItem(item.id, "is_hidden", e.target.checked)
-                          }
-                        />
-                        <label
-                          htmlFor={`hide-list-${item.id}`}
-                          className="cursor-pointer"
-                        >
-                          숨김
-                        </label>
-                      </div>
-                      <div className="flex items-center justify-between gap-3 md:justify-center">
-                        <div className="flex items-center gap-2 text-sm text-stone-600 md:hidden">
-                          <input
-                            id={`hide-list-mobile-${item.id}`}
-                            type="checkbox"
-                            defaultChecked={item.is_hidden}
-                            onChange={(e) =>
-                              updateItem(item.id, "is_hidden", e.target.checked)
-                            }
-                          />
-                          <label
-                            htmlFor={`hide-list-mobile-${item.id}`}
-                            className="cursor-pointer"
-                          >
-                            숨김
-                          </label>
-                        </div>
-                        <div className="flex items-center gap-2 md:hidden">
-                          <button
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-stone-300 text-[11px] text-stone-600"
-                            onClick={() => setEditing(item)}
-                            aria-label="편집"
-                            title="편집"
-                          >
-                            ✎
-                          </button>
-                          <button
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-red-300 text-[11px] text-red-600"
-                            onClick={() => deleteItem(item.id, item.name)}
-                            aria-label="삭제"
-                            title="삭제"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                        <div className="hidden items-center justify-center gap-2 md:flex">
-                          <button
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-stone-300 text-base text-stone-600"
-                            onClick={() => setEditing(item)}
-                            aria-label="편집"
-                            title="편집"
-                          >
-                            ✎
-                          </button>
-                          <button
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-300 text-base text-red-600"
-                            onClick={() => deleteItem(item.id, item.name)}
-                            aria-label="삭제"
-                            title="삭제"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={(event) =>
+                  setActiveId(event.active?.id?.toString() || null)
+                }
+                onDragEnd={async (event) => {
+                  const active = event.active?.id?.toString();
+                  const over = event.over?.id?.toString();
+                  setActiveId(null);
+                  if (!active || !over || active === over) return;
+                  const oldIndex = listItems.findIndex((item) => item.id === active);
+                  const newIndex = listItems.findIndex((item) => item.id === over);
+                  if (oldIndex < 0 || newIndex < 0) return;
+                  const reordered = arrayMove(listItems, oldIndex, newIndex);
+                  const updates = reordered.map((item, index) => ({
+                    id: item.id,
+                    sort_order: index + 1,
+                  }));
+                  setMenu((prev) =>
+                    prev.map((item) => {
+                      const found = updates.find((u) => u.id === item.id);
+                      return found
+                        ? { ...item, sort_order: found.sort_order }
+                        : item;
+                    }),
+                  );
+                  await Promise.all(
+                    updates.map((update) =>
+                      supabase
+                        .from("menu_items")
+                        .update({ sort_order: update.sort_order })
+                        .eq("id", update.id),
+                    ),
+                  );
+                  await load();
+                }}
+              >
+                <SortableContext
+                  items={listItems.map((item) => item.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {listItems.map((item) => (
+                    <SortableMenuRow
+                      key={item.id}
+                      item={item}
+                      categories={categories}
+                      onEdit={() => setEditing(item)}
+                      onDelete={() => deleteItem(item.id, item.name)}
+                      onUpdate={updateItem}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
             </div>
           </div>
         )}
@@ -865,5 +716,172 @@ export default function AdminMenuPage() {
         )}
       </div>
     </AdminGate>
+  );
+}
+
+function SortableMenuRow({
+  item,
+  categories,
+  onEdit,
+  onDelete,
+  onUpdate,
+}: {
+  item: MenuItem;
+  categories: string[];
+  onEdit: () => void;
+  onDelete: () => void;
+  onUpdate: (
+    id: string,
+    field: keyof MenuItem,
+    value: string | number | boolean,
+  ) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`py-3 text-sm md:px-4 ${isDragging ? "opacity-60" : ""}`}
+    >
+      <div className="grid gap-3 md:grid-cols-[36px_140px_1fr_120px_220px_110px_120px] md:items-center md:gap-3">
+        <div className="hidden items-center justify-center md:flex">
+          <button
+            ref={setActivatorNodeRef}
+            className="cursor-grab text-stone-400"
+            aria-label="순서 이동"
+            title="드래그해서 순서 변경"
+            {...attributes}
+            {...listeners}
+          >
+            ⋮⋮
+          </button>
+        </div>
+        <div className="grid gap-1">
+          <span className="text-xs text-stone-500 md:hidden">카테고리</span>
+          <select
+            className="rounded-lg border border-stone-200 px-3 py-2"
+            value={item.category || ""}
+            onChange={(e) => onUpdate(item.id, "category", e.target.value)}
+          >
+            <option value="">선택</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid gap-1">
+          <span className="text-xs text-stone-500 md:hidden">메뉴명</span>
+          <input
+            className="rounded-lg border border-stone-200 px-3 py-2 text-base md:text-sm"
+            defaultValue={item.name}
+            onBlur={(e) => onUpdate(item.id, "name", e.target.value)}
+          />
+        </div>
+        <div className="grid gap-1 md:contents">
+          <span className="text-xs text-stone-500 md:hidden">가격</span>
+          <div className="flex items-center gap-3 md:contents">
+            <input
+              className="w-32 rounded-lg border border-stone-200 px-3 py-2 text-sm md:w-full"
+              type="number"
+              defaultValue={item.price}
+              onBlur={(e) => onUpdate(item.id, "price", e.target.value)}
+            />
+            <div className="flex flex-nowrap items-center justify-center gap-2 text-sm text-stone-600 md:justify-center md:gap-3 md:self-center">
+              <label className="flex items-center gap-2 text-red-600">
+                <input
+                  type="checkbox"
+                  defaultChecked={item.is_hot}
+                  onChange={(e) => onUpdate(item.id, "is_hot", e.target.checked)}
+                />
+                HOT
+              </label>
+              <label className="flex items-center gap-2 text-blue-500">
+                <input
+                  type="checkbox"
+                  defaultChecked={item.is_ice}
+                  onChange={(e) => onUpdate(item.id, "is_ice", e.target.checked)}
+                />
+                ICE
+              </label>
+            </div>
+          </div>
+        </div>
+        <div className="hidden items-center gap-2 text-sm text-stone-600 md:flex md:justify-center">
+          <input
+            id={`hide-list-${item.id}`}
+            type="checkbox"
+            defaultChecked={item.is_hidden}
+            onChange={(e) => onUpdate(item.id, "is_hidden", e.target.checked)}
+          />
+          <label htmlFor={`hide-list-${item.id}`} className="cursor-pointer">
+            숨김
+          </label>
+        </div>
+        <div className="flex items-center justify-between gap-3 md:justify-center">
+          <div className="flex items-center gap-2 text-sm text-stone-600 md:hidden">
+            <input
+              id={`hide-list-mobile-${item.id}`}
+              type="checkbox"
+              defaultChecked={item.is_hidden}
+              onChange={(e) => onUpdate(item.id, "is_hidden", e.target.checked)}
+            />
+            <label htmlFor={`hide-list-mobile-${item.id}`} className="cursor-pointer">
+              숨김
+            </label>
+          </div>
+          <div className="flex items-center gap-2 md:hidden">
+            <button
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-stone-300 text-[11px] text-stone-600"
+              onClick={onEdit}
+              aria-label="편집"
+              title="편집"
+            >
+              ✎
+            </button>
+            <button
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-red-300 text-[11px] text-red-600"
+              onClick={onDelete}
+              aria-label="삭제"
+              title="삭제"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="hidden items-center justify-center gap-2 md:flex">
+            <button
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-stone-300 text-base text-stone-600"
+              onClick={onEdit}
+              aria-label="편집"
+              title="편집"
+            >
+              ✎
+            </button>
+            <button
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-300 text-base text-red-600"
+              onClick={onDelete}
+              aria-label="삭제"
+              title="삭제"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
