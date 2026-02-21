@@ -435,6 +435,7 @@ export default function AdminOrdersPage() {
                     defaultOpen={
                       order.status !== "완료" && order.status !== "주문취소"
                     }
+                    disabled={order.status === "완료" || order.status === "주문취소"}
                     onUpdate={updateItemStatus}
                   />
                 </div>
@@ -528,6 +529,7 @@ export default function AdminOrdersPage() {
                     defaultOpen={
                       order.status !== "완료" && order.status !== "주문취소"
                     }
+                    disabled={order.status === "완료" || order.status === "주문취소"}
                     onUpdate={updateItemStatus}
                   />
                 </div>
@@ -621,6 +623,7 @@ export default function AdminOrdersPage() {
                     defaultOpen={
                       order.status !== "완료" && order.status !== "주문취소"
                     }
+                    disabled={order.status === "완료" || order.status === "주문취소"}
                     onUpdate={updateItemStatus}
                   />
                 </div>
@@ -714,6 +717,7 @@ export default function AdminOrdersPage() {
                     defaultOpen={
                       order.status !== "완료" && order.status !== "주문취소"
                     }
+                    disabled={order.status === "완료" || order.status === "주문취소"}
                     onUpdate={updateItemStatus}
                   />
                 </div>
@@ -844,11 +848,13 @@ function OrderItemsPanel({
   items,
   orderId,
   defaultOpen,
+  disabled = false,
   onUpdate,
 }: {
   items: OrderItem[];
   orderId: string;
   defaultOpen: boolean;
+  disabled?: boolean;
   onUpdate: (
     id: string,
     status: OrderItem["status"],
@@ -888,8 +894,9 @@ function OrderItemsPanel({
                 )}
               </div>
               <select
-                className="rounded-xl border border-stone-200 px-3 py-2"
+                className="rounded-xl border border-stone-200 px-3 py-2 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400"
                 value={item.status}
+                disabled={disabled}
                 onChange={(e) =>
                   onUpdate(
                     item.id,
